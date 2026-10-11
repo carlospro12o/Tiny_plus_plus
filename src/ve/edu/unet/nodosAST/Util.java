@@ -17,12 +17,18 @@ public class Util {
 		    else if (raiz instanceof  NodoAsignacion)
 		    	System.out.println("Asignacion a: "+((NodoAsignacion)raiz).getIdentificador());
 
+		    else if (raiz instanceof NodoAsignacionArreglo)
+		    	System.out.println("Asignacion a Arreglo: "+((NodoAsignacionArreglo)raiz).getIdentificador()+"[...]");
+
 		    else if (raiz instanceof  NodoLeer)  
 		    	System.out.println("Lectura: "+((NodoLeer)raiz).getIdentificador());
 
 		    else if (raiz instanceof  NodoEscribir)
 		    	System.out.println("Escribir");
 		    
+		    else if (raiz instanceof NodoAccesoArreglo)
+		    	System.out.println("Acceso a Arreglo: "+((NodoAccesoArreglo)raiz).getIdentificador()+"[...]");
+
 		    else if (raiz instanceof NodoOperacion
 		    		|| raiz instanceof NodoValor
 		    		|| raiz instanceof NodoBooleano
@@ -54,6 +60,19 @@ public class Util {
 		    }
 		    else if (raiz instanceof  NodoAsignacion)
 		    	imprimirAST(((NodoAsignacion)raiz).getExpresion());
+		    else if (raiz instanceof NodoAsignacionArreglo){
+		    	printSpaces();
+		    	System.out.println("**Indice de Asignacion**");
+		    	imprimirAST(((NodoAsignacionArreglo)raiz).getIndice());
+		    	printSpaces();
+		    	System.out.println("**Valor a Asignar**");
+		    	imprimirAST(((NodoAsignacionArreglo)raiz).getExpresion());
+		    }
+		    else if (raiz instanceof NodoAccesoArreglo){
+		    	printSpaces();
+		    	System.out.println("**Indice de Acceso**");
+		    	imprimirAST(((NodoAccesoArreglo)raiz).getIndice());
+		    }
 		    else if (raiz instanceof  NodoEscribir)
 		    	imprimirAST(((NodoEscribir)raiz).getExpresion());
 		    else if (raiz instanceof NodoOperacion){
