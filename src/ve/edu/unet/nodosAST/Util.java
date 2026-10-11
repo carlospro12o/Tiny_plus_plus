@@ -25,9 +25,10 @@ public class Util {
 		    
 		    else if (raiz instanceof NodoOperacion
 		    		|| raiz instanceof NodoValor
+		    		|| raiz instanceof NodoBooleano
 		    		|| raiz instanceof NodoIdentificador )
 		    	imprimirNodo(raiz);
-		    else System.out.println("Tipo de nodo desconocido");;
+		    else System.out.println("Tipo de nodo desconocido: " + raiz.getClass().getSimpleName());
 		    
 		    /* Hago el recorrido recursivo */
 		    if (raiz instanceof  NodoIf){
@@ -56,12 +57,16 @@ public class Util {
 		    else if (raiz instanceof  NodoEscribir)
 		    	imprimirAST(((NodoEscribir)raiz).getExpresion());
 		    else if (raiz instanceof NodoOperacion){
-		    	printSpaces();
-		    	System.out.println("**Expr Izquierda Operacion**");
-		    	imprimirAST(((NodoOperacion)raiz).getOpIzquierdo());
-		    	printSpaces();
-		    	System.out.println("**Expr Derecha Operacion**");		    	
-		    	imprimirAST(((NodoOperacion)raiz).getOpDerecho());
+		    	if (((NodoOperacion)raiz).getOpIzquierdo() != null) {
+		    		printSpaces();
+		    		System.out.println("**Expr Izquierda Operacion**");
+		    		imprimirAST(((NodoOperacion)raiz).getOpIzquierdo());
+		    	}
+		    	if (((NodoOperacion)raiz).getOpDerecho() != null) {
+		    		printSpaces();
+		    		System.out.println("**Expr Derecha Operacion**");		    	
+		    		imprimirAST(((NodoOperacion)raiz).getOpDerecho());
+		    	}
 		    }
 		    raiz = raiz.getHermanoDerecha();
 		  }
@@ -89,22 +94,27 @@ static void imprimirNodo( NodoBase raiz )
 	
 	if(	raiz instanceof NodoOperacion ){
 		tipoOp sel=((NodoOperacion) raiz).getOperacion();
-		if(sel==tipoOp.menor)
-			System.out.println("<"); 
-		if(sel==tipoOp.igual)
-			System.out.println("=");
-		if(sel==tipoOp.mas)
-			System.out.println("+");
-		if(sel==tipoOp.menos)
-			System.out.println("-");
-		if(sel==tipoOp.por)
-			System.out.println("*");
-		if(sel==tipoOp.entre)
-			System.out.println("/");
+		if(sel==tipoOp.menor) System.out.println("<"); 
+		if(sel==tipoOp.igual) System.out.println("=");
+		if(sel==tipoOp.mas) System.out.println("+");
+		if(sel==tipoOp.menos) System.out.println("-");
+		if(sel==tipoOp.por) System.out.println("*");
+		if(sel==tipoOp.entre) System.out.println("/");
+		if(sel==tipoOp.mayor) System.out.println(">");
+		if(sel==tipoOp.menorIgual) System.out.println("<=");
+		if(sel==tipoOp.mayorIgual) System.out.println(">=");
+		if(sel==tipoOp.diferente) System.out.println("!=");
+		if(sel==tipoOp.y || sel==tipoOp.and) System.out.println("and");
+		if(sel==tipoOp.o || sel==tipoOp.or) System.out.println("or");
+		if(sel==tipoOp.no || sel==tipoOp.not) System.out.println("not");
 	}
 
 	if(	raiz instanceof NodoValor ){
 		System.out.println("NUM, val= "+ ((NodoValor)raiz).getValor());
+	}
+
+	if(	raiz instanceof NodoBooleano ){
+		System.out.println("BOOL, val= "+ ((NodoBooleano)raiz).getValor());
 	}
 
 	if(	raiz instanceof NodoIdentificador ){
@@ -112,6 +122,5 @@ static void imprimirNodo( NodoBase raiz )
 	}
 
 }
-
 
 }
