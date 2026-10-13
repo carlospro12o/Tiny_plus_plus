@@ -1,28 +1,28 @@
 package ve.edu.unet;
 
 import ve.edu.unet.nodosAST.*;
+import java.util.*;
 
 public class Generador {
 	/* Ilustracion de la disposicion de la memoria en
 	 * este ambiente de ejecucion para el lenguaje Tiny++
 	 *
-	 * |t1	|<- mp (Maxima posicion de memoria de la TM)
-	 * |t1	|<- desplazamientoTmp (tope actual)
-	 * |free|
-	 * |free|
-	 * |...	|
-	 * |x	|
-	 * |y	|<- gp
-	 * 
+	 * |t1          |<- mp (Maxima posicion de memoria de la TM)
+	 * |t1          |<- desplazamientoTmp (tope actual)
+	 * |free        |
+	 * |free        |
+	 * |string pool |<- Literales de cadenas (reservados estaticamente)
+	 * |V[0..N]     |<- Arreglos unidimensionales (bloques continuos)
+	 * |x, y, flag  |<- Variables globales escalares
+	 * |            |<- gp (0)
 	 * */
 	
-	/* desplazamientoTmp es una variable inicializada en 0
-	 * y empleada como el desplazamiento de la siguiente localidad
-	 * temporal disponible desde la parte superior o tope de la memoria
-	 * (la que apunta el registro MP).
-	 */
 	private static int desplazamientoTmp = 0;
 	private static TablaSimbolos tablaSimbolos = null;
+	
+	// Pool de memoria para literales de cadena (Mision 3: Cadenas de Texto)
+	private static Map<String, Integer> poolCadenas = new LinkedHashMap<>();
+	private static int dirSiguienteString = 0;
 	
 	public static void setTablaSimbolos(TablaSimbolos tabla){
 		tablaSimbolos = tabla;
@@ -34,9 +34,20 @@ public class Generador {
 		System.out.println("------ CODIGO OBJETO DEL LENGUAJE TINY++ GENERADO PARA LA TM ------");
 		System.out.println();
 		System.out.println();
+		
+		// Inicializar y recolectar cadenas en memoria
+		poolCadenas.clear();
+		if (tablaSimbolos != null) {
+			dirSiguienteString = tablaSimbolos.getSiguienteDireccionDisponible() + 1;
+		} else {
+			dirSiguienteString = 20;
+		}
+		recolectarCadenas(raiz);
+		
 		generarPreludioEstandar();
 		generar(raiz);
-		/* Genero el codigo de finalizacion de ejecucion del codigo */   
+		
+		/* Codigo de finalizacion de ejecucion */   
 		UtGen.emitirComentario("Fin de la ejecucion.");
 		UtGen.emitirRO("HALT", 0, 0, 0, "");
 		System.out.println();
@@ -44,8 +55,56 @@ public class Generador {
 		System.out.println("------ FIN DEL CODIGO OBJETO DEL LENGUAJE TINY++ GENERADO PARA LA TM ------");
 	}
 	
+	// Recolector de literales de cadena para reservar memoria en el string pool
+	private static void recolectarCadenas(NodoBase raiz) {
+		while (raiz != null) {
+			if (raiz instanceof NodoValor && ((NodoValor) raiz).esCadena()) {
+				String cad = limpiarCadena(((NodoValor) raiz).getValorCadena());
+				if (!poolCadenas.containsKey(cad)) {
+					poolCadenas.put(cad, dirSiguienteString);
+					dirSiguienteString += cad.length() + 1; // caracteres + '\0'
+				}
+			}
+			
+			if (raiz instanceof NodoIf) {
+				recolectarCadenas(((NodoIf) raiz).getPrueba());
+				recolectarCadenas(((NodoIf) raiz).getParteThen());
+				if (((NodoIf) raiz).getParteElse() != null) recolectarCadenas(((NodoIf) raiz).getParteElse());
+			} else if (raiz instanceof NodoRepeat) {
+				recolectarCadenas(((NodoRepeat) raiz).getCuerpo());
+				recolectarCadenas(((NodoRepeat) raiz).getPrueba());
+			} else if (raiz instanceof NodoAsignacion) {
+				NodoAsignacion asig = (NodoAsignacion) raiz;
+				if (asig.esArreglo()) recolectarCadenas(asig.getIndice());
+				recolectarCadenas(asig.getExpresion());
+			} else if (raiz instanceof NodoAsignacionArreglo) {
+				recolectarCadenas(((NodoAsignacionArreglo) raiz).getIndice());
+				recolectarCadenas(((NodoAsignacionArreglo) raiz).getExpresion());
+			} else if (raiz instanceof NodoEscribir) {
+				recolectarCadenas(((NodoEscribir) raiz).getExpresion());
+			} else if (raiz instanceof NodoOperacion) {
+				recolectarCadenas(((NodoOperacion) raiz).getOpIzquierdo());
+				if (((NodoOperacion) raiz).getOpDerecho() != null) recolectarCadenas(((NodoOperacion) raiz).getOpDerecho());
+			} else if (raiz instanceof NodoSubrutina) {
+				recolectarCadenas(((NodoSubrutina) raiz).getCuerpo());
+			} else if (raiz instanceof NodoLlamada) {
+				recolectarCadenas(((NodoLlamada) raiz).getArgumentos());
+			} else if (raiz instanceof NodoReturn) {
+				if (((NodoReturn) raiz).tieneExpresion()) recolectarCadenas(((NodoReturn) raiz).getExpresion());
+			}
+			raiz = raiz.getHermanoDerecha();
+		}
+	}
+
+	private static String limpiarCadena(String cad) {
+		if (cad == null) return "";
+		if (cad.startsWith("\"") && cad.endsWith("\"") && cad.length() >= 2) {
+			return cad.substring(1, cad.length() - 1);
+		}
+		return cad;
+	}
+
 	// Funcion principal de generacion de codigo
-	// Prerequisito: Fijar la tabla de simbolos antes de generar el codigo objeto 
 	private static void generar(NodoBase nodo){
 		if(tablaSimbolos != null){
 			if (nodo instanceof NodoIf){
@@ -70,7 +129,9 @@ public class Generador {
 				generarEscribir(nodo);
 			}else if (nodo instanceof NodoValor){
 				NodoValor val = (NodoValor) nodo;
-				if (val.esBooleano())
+				if (val.esCadena())
+					generarCadenaLiteral(limpiarCadena(val.getValorCadena()));
+				else if (val.esBooleano())
 					generarBooleanoDirecto((Boolean) val.getValorObjeto());
 				else
 					generarValor(nodo);
@@ -85,8 +146,7 @@ public class Generador {
 			}else if (nodo instanceof NodoOperacion){
 				generarOperacion(nodo);
 			}else if (nodo instanceof NodoDeclaracion){
-				// Las declaraciones reservan espacio en la tabla de simbolos, no emiten codigo directo aqui
-				if(UtGen.debug) UtGen.emitirComentario("declaracion: " + ((NodoDeclaracion)nodo).getIdentificador());
+				if(UtGen.debug) UtGen.emitirComentario("declaracion: " + ((NodoDeclaracion)nodo).getIdentificador() + " (" + ((NodoDeclaracion)nodo).getTipo() + ")");
 			}else if (nodo instanceof NodoSubrutina){
 				if(UtGen.debug) UtGen.emitirComentario("subrutina: " + ((NodoSubrutina)nodo).getIdentificador());
 			}else if (nodo instanceof NodoReturn){
@@ -98,7 +158,7 @@ public class Generador {
 			}else{
 				System.out.println("BUG: Tipo de nodo a generar desconocido: " + nodo.getClass().getSimpleName());
 			}
-			/* Si el hijo de extrema izquierda tiene hermano a la derecha lo genero tambien */
+			/* Si el hijo tiene hermano a la derecha lo genero tambien */
 			if(nodo.TieneHermano())
 				generar(nodo.getHermanoDerecha());
 		}else{
@@ -110,11 +170,9 @@ public class Generador {
 		NodoIf n = (NodoIf)nodo;
 		int localidadSaltoElse, localidadSaltoEnd, localidadActual;
 		if(UtGen.debug) UtGen.emitirComentario("-> if");
-		/* Genero el codigo para la parte de prueba del IF */
 		generar(n.getPrueba());
 		localidadSaltoElse = UtGen.emitirSalto(1);
 		UtGen.emitirComentario("If: el salto hacia el else debe estar aqui");
-		/* Genero la parte THEN */
 		generar(n.getParteThen());
 		localidadSaltoEnd = UtGen.emitirSalto(1);
 		UtGen.emitirComentario("If: el salto hacia el final debe estar aqui");
@@ -122,7 +180,6 @@ public class Generador {
 		UtGen.cargarRespaldo(localidadSaltoElse);
 		UtGen.emitirRM_Abs("JEQ", UtGen.AC, localidadActual, "if: jmp hacia else");
 		UtGen.restaurarRespaldo();
-		/* Genero la parte ELSE */
 		if(n.getParteElse() != null){
 			generar(n.getParteElse());
 			localidadActual = UtGen.emitirSalto(0);
@@ -130,7 +187,6 @@ public class Generador {
 			UtGen.emitirRM_Abs("LDA", UtGen.PC, localidadActual, "if: jmp hacia el final");
 			UtGen.restaurarRespaldo();
 		}
-		
 		if(UtGen.debug) UtGen.emitirComentario("<- if");
 	}
 	
@@ -139,10 +195,8 @@ public class Generador {
 		int localidadSaltoInicio;
 		if(UtGen.debug) UtGen.emitirComentario("-> repeat");
 		localidadSaltoInicio = UtGen.emitirSalto(0);
-		UtGen.emitirComentario("repeat: el salto hacia el final (luego del cuerpo) del repeat debe estar aqui");
-		/* Genero el cuerpo del repeat */
+		UtGen.emitirComentario("repeat: el salto hacia el final del repeat debe estar aqui");
 		generar(n.getCuerpo());
-		/* Genero el codigo de la prueba del repeat */
 		generar(n.getPrueba());
 		UtGen.emitirRM_Abs("JEQ", UtGen.AC, localidadSaltoInicio, "repeat: jmp hacia el inicio del cuerpo");
 		if(UtGen.debug) UtGen.emitirComentario("<- repeat");
@@ -152,9 +206,7 @@ public class Generador {
 		NodoAsignacion n = (NodoAsignacion)nodo;
 		int direccion;
 		if(UtGen.debug) UtGen.emitirComentario("-> asignacion");		
-		/* Genero el codigo para la expresion a la derecha de la asignacion */
 		generar(n.getExpresion());
-		/* Ahora almaceno el valor resultante */
 		direccion = tablaSimbolos.getDireccion(n.getIdentificador());
 		UtGen.emitirRM("ST", UtGen.AC, direccion, UtGen.GP, "asignacion: almaceno el valor para el id "+n.getIdentificador());
 		if(UtGen.debug) UtGen.emitirComentario("<- asignacion");
@@ -163,26 +215,26 @@ public class Generador {
 	private static void generarAsignacionArreglo(String identificador, NodoBase indice, NodoBase expresion){
 		if(UtGen.debug) UtGen.emitirComentario("-> asignacion arreglo: " + identificador + "[...] :=");
 		
-		/* 1. Evaluar la expresion del indice. El resultado queda en AC (r0) */
+		/* 1. Evaluar la expresion del indice -> AC (r0) */
 		generar(indice);
 		
-		/* 2. Obtener la direccion base del arreglo */
+		/* 2. Obtener direccion base del arreglo */
 		int dirBase = tablaSimbolos.getDireccion(identificador);
 		
-		/* 3. Calcular la direccion efectiva del elemento: r2 = dirBase + GP + indice */
+		/* 3. Calcular direccion efectiva: R2 = dirBase + GP + indice */
 		UtGen.emitirRM("LDA", UtGen.R2, dirBase, UtGen.GP, "asig arreglo: cargar direccion base de " + identificador + " en R2");
 		UtGen.emitirRO("ADD", UtGen.R2, UtGen.R2, UtGen.AC, "asig arreglo: sumar indice para direccion efectiva");
 		
-		/* 4. Guardar la direccion calculada (r2) en la pila temporal */
+		/* 4. Guardar direccion calculada en la pila temporal */
 		UtGen.emitirRM("ST", UtGen.R2, desplazamientoTmp--, UtGen.MP, "asig arreglo: push direccion destino en pila temporal");
 		
-		/* 5. Evaluar la expresion a la derecha de la asignacion. El valor queda en AC (r0) */
+		/* 5. Evaluar expresion de la derecha -> AC (r0) */
 		generar(expresion);
 		
-		/* 6. Recuperar la direccion de destino desde la pila temporal hacia AC1 (r1) */
+		/* 6. Recuperar direccion destino en AC1 (r1) */
 		UtGen.emitirRM("LD", UtGen.AC1, ++desplazamientoTmp, UtGen.MP, "asig arreglo: pop direccion destino en AC1");
 		
-		/* 7. Almacenar el valor de AC en la direccion apuntada por AC1 */
+		/* 7. Almacenar valor de AC en casilla destino */
 		UtGen.emitirRM("ST", UtGen.AC, 0, UtGen.AC1, "asig arreglo: almacenar valor en " + identificador + "[indice]");
 		
 		if(UtGen.debug) UtGen.emitirComentario("<- asignacion arreglo: " + identificador);
@@ -191,17 +243,17 @@ public class Generador {
 	private static void generarAccesoArreglo(String identificador, NodoBase indice){
 		if(UtGen.debug) UtGen.emitirComentario("-> acceso arreglo: " + identificador + "[...]");
 		
-		/* 1. Evaluar la expresion del indice. El resultado queda en AC (r0) */
+		/* 1. Evaluar expresion del indice -> AC */
 		generar(indice);
 		
-		/* 2. Obtener la direccion base del arreglo */
+		/* 2. Obtener direccion base */
 		int dirBase = tablaSimbolos.getDireccion(identificador);
 		
-		/* 3. Calcular la direccion efectiva del elemento: r2 = dirBase + GP + indice */
+		/* 3. Calcular direccion efectiva: R2 = dirBase + GP + indice */
 		UtGen.emitirRM("LDA", UtGen.R2, dirBase, UtGen.GP, "arreglo: cargar direccion base de " + identificador + " en R2");
 		UtGen.emitirRO("ADD", UtGen.R2, UtGen.R2, UtGen.AC, "arreglo: sumar indice para direccion efectiva");
 		
-		/* 4. Cargar el valor de la casilla apuntada por r2 en AC */
+		/* 4. Cargar valor de la casilla apuntada por R2 en AC */
 		UtGen.emitirRM("LD", UtGen.AC, 0, UtGen.R2, "arreglo: cargar en AC el valor de " + identificador + "[indice]");
 		
 		if(UtGen.debug) UtGen.emitirComentario("<- acceso arreglo: " + identificador);
@@ -220,10 +272,39 @@ public class Generador {
 	private static void generarEscribir(NodoBase nodo){
 		NodoEscribir n = (NodoEscribir)nodo;
 		if(UtGen.debug) UtGen.emitirComentario("-> escribir");
-		/* Genero el codigo de la expresion que va a ser escrita en pantalla */
-		generar(n.getExpresion());
-		/* Ahora genero la salida */
-		UtGen.emitirRO("OUT", UtGen.AC, 0, 0, "escribir: genero la salida de la expresion");
+		
+		// Deteccion si es una expresion de tipo cadena
+		boolean esCadena = false;
+		if (n.getExpresion() instanceof NodoValor && ((NodoValor) n.getExpresion()).esCadena()) {
+			esCadena = true;
+		} else if (n.getExpresion() instanceof NodoIdentificador) {
+			NodoIdentificador id = (NodoIdentificador) n.getExpresion();
+			if ("string".equalsIgnoreCase(tablaSimbolos.getTipo(id.getNombre()))) {
+				esCadena = true;
+			}
+		}
+		
+		if (esCadena) {
+			// Evalua la expresion -> puntero base de la cadena en AC
+			generar(n.getExpresion());
+			// R2 = direccion absoluta en memoria (AC + GP)
+			UtGen.emitirRO("ADD", UtGen.R2, UtGen.AC, UtGen.GP, "escribir string: R2 = dir base en dMem");
+			int inicioLoop = UtGen.emitirSalto(0);
+			// Cargar caracter: AC = dMem[0(R2)]
+			UtGen.emitirRM("LD", UtGen.AC, 0, UtGen.R2, "escribir string: cargar caracter");
+			int saltoFin = UtGen.emitirSalto(1);
+			UtGen.emitirRO("OUT", UtGen.AC, 0, 0, "escribir string: imprimir caracter");
+			UtGen.emitirRM("LDA", UtGen.R2, 1, UtGen.R2, "escribir string: R2++ (siguiente caracter)");
+			UtGen.emitirRM_Abs("LDA", UtGen.PC, inicioLoop, "escribir string: loop");
+			int finLoop = UtGen.emitirSalto(0);
+			UtGen.cargarRespaldo(saltoFin);
+			UtGen.emitirRM_Abs("JEQ", UtGen.AC, finLoop, "escribir string: salir si terminador \\0");
+			UtGen.restaurarRespaldo();
+		} else {
+			/* Expresion numerica o booleana normal */
+			generar(n.getExpresion());
+			UtGen.emitirRO("OUT", UtGen.AC, 0, 0, "escribir: genero la salida de la expresion");
+		}
 		if(UtGen.debug) UtGen.emitirComentario("<- escribir");
 	}
 	
@@ -239,6 +320,13 @@ public class Generador {
 		int val = valor ? 1 : 0;
 		UtGen.emitirRM("LDC", UtGen.AC, val, 0, "cargar booleano: " + (valor ? "true (1)" : "false (0)"));
 		if(UtGen.debug) UtGen.emitirComentario("<- booleano");
+	}
+
+	private static void generarCadenaLiteral(String cad){
+		if(UtGen.debug) UtGen.emitirComentario("-> literal string: \"" + cad + "\"");
+		int dir = poolCadenas.getOrDefault(cad, dirSiguienteString);
+		UtGen.emitirRM("LDC", UtGen.AC, dir, 0, "cargar puntero base a string \"" + cad + "\"");
+		if(UtGen.debug) UtGen.emitirComentario("<- literal string");
 	}
 	
 	private static void generarIdentificador(NodoBase nodo){
@@ -267,13 +355,9 @@ public class Generador {
 		}
 
 		/* Operaciones binarias */
-		/* Genero la expresion izquierda de la operacion */
 		generar(n.getOpIzquierdo());
-		/* Almaceno en la pseudo pila de valores temporales el valor de la operacion izquierda */
 		UtGen.emitirRM("ST", UtGen.AC, desplazamientoTmp--, UtGen.MP, "op: push en la pila tmp el resultado expresion izquierda");
-		/* Genero la expresion derecha de la operacion */
 		generar(n.getOpDerecho());
-		/* Ahora cargo/saco de la pila el valor izquierdo */
 		UtGen.emitirRM("LD", UtGen.AC1, ++desplazamientoTmp, UtGen.MP, "op: pop o cargo de la pila el valor izquierdo en AC1");
 		
 		switch(n.getOperacion()){
@@ -365,13 +449,32 @@ public class Generador {
 		if(UtGen.debug) UtGen.emitirComentario("<- Operacion: " + n.getOperacion());
 	}
 	
-	// Preludio estandar
+	// Preludio estandar: Inicializacion de memoria de ejecucion y carga de literales de cadena
 	private static void generarPreludioEstandar(){
 		UtGen.emitirComentario("Compilacion TINY++ para el codigo objeto TM");
 		UtGen.emitirComentario("Archivo generado");
 		UtGen.emitirComentario("Preludio estandar:");
 		UtGen.emitirRM("LD", UtGen.MP, 0, UtGen.AC, "cargar la maxima direccion desde la localidad 0");
 		UtGen.emitirRM("ST", UtGen.AC, 0, UtGen.AC, "limpio el registro de la localidad 0");
+		
+		// Carga inicial de literales de cadena en dMem (Mision 3: Cadenas de Texto)
+		if (!poolCadenas.isEmpty()) {
+			UtGen.emitirComentario("--- CARGA INICIAL DE LITERALES DE CADENA EN dMem ---");
+			for (Map.Entry<String, Integer> entry : poolCadenas.entrySet()) {
+				String cad = entry.getKey();
+				int dir = entry.getValue();
+				UtGen.emitirComentario("Cadena: \"" + cad + "\" en dMem[" + dir + ".." + (dir + cad.length()) + "]");
+				for (int i = 0; i < cad.length(); i++) {
+					char c = cad.charAt(i);
+					UtGen.emitirRM("LDC", UtGen.AC, (int) c, 0, "caracter '" + c + "' (ASCII " + (int) c + ")");
+					UtGen.emitirRM("ST", UtGen.AC, dir + i, UtGen.GP, "almacenar en dMem[" + (dir + i) + "]");
+				}
+				// Terminador nulo 0
+				UtGen.emitirRM("LDC", UtGen.AC, 0, 0, "terminador nulo \\0 (0)");
+				UtGen.emitirRM("ST", UtGen.AC, dir + cad.length(), UtGen.GP, "almacenar fin de cadena");
+			}
+			UtGen.emitirComentario("--- FIN CARGA DE LITERALES DE CADENA ---");
+		}
 	}
 
 }

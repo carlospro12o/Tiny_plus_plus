@@ -23,7 +23,11 @@ El proyecto se encuentra dividido en las siguientes áreas de responsabilidad:
   - Asignación del registro temporal `R2` (`r2`) en `UtGen.java` para cálculo aritmético de direcciones en tiempo de ejecución.
   - Soporte de expresiones complejas en el índice (ej: `A[i * 2 + 1] := 10;` y `x := A[i * 2 + 1] + 5;`).
   - Manejo de desplazamientos dinámicos en la Memoria de Datos (`dMem`) mediante `LDA`, `ADD` e indexación indirecta con `LD`/`ST`.
-- [ ] **Misión 3 - Cadenas de Texto (`string`):** Almacenamiento continuo en memoria y rutinas de E/S.
+- [x] **Misión 3 - Cadenas de Texto (`string`):**
+  - Tipado y reserva de bloques en memoria de datos (`dMem`) en `RegistroSimbolo.java` y `TablaSimbolos.java`.
+  - String Literal Pool en `Generador.java` con carga estática en el preludio de ejecución (códigos ASCII y terminador nulo `\0`).
+  - Asignación de referencias/punteros a variables (`saludo := "hola Tiny++";`).
+  - Rutina de salida en TM con bucle de recorrido en memoria (`LD`, `OUT`, `LDA`, `JEQ`) para imprimir caracteres tanto desde variables como literales en `write`.
 - [ ] **Misión 4 - Subrutinas, Funciones y Marcos de Pila (Stack Frames):** Gestión de llamadas con registros `MP`, `GP` y `PC`.
 
 ### 👤 Módulos 3 y 4: IDE y Depurador Visual (Integrante 3)

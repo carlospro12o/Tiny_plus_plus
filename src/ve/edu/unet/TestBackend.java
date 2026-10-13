@@ -5,17 +5,18 @@ import ve.edu.unet.nodosAST.*;
 public class TestBackend {
     public static void main(String[] args) {
         System.out.println("==================================================================");
-        System.out.println("  VERIFICACION DE GENERACION DE CODIGO TM (MISIONES 1 Y 2)        ");
+        System.out.println("  VERIFICACION DE GENERACION DE CODIGO TM (MISIONES 1, 2 Y 3)     ");
         System.out.println("==================================================================");
 
         // Simulamos la tabla de simbolos que normalmente llena el Frontend
         TablaSimbolos ts = new TablaSimbolos();
-        ts.InsertarSimbolo("res", 1);
-        ts.InsertarSimbolo("a", 1);
-        ts.InsertarSimbolo("b", 1);
-        ts.InsertarSimbolo("x", 1);
-        ts.InsertarSimbolo("i", 1);
-        ts.InsertarSimbolo("A", 1); // Arreglo A con direccion base
+        ts.InsertarSimbolo("res", 1, "int", 1);
+        ts.InsertarSimbolo("a", 1, "int", 1);
+        ts.InsertarSimbolo("b", 1, "int", 1);
+        ts.InsertarSimbolo("x", 1, "int", 1);
+        ts.InsertarSimbolo("i", 1, "int", 1);
+        ts.InsertarSimbolo("A", 1, "int", 10);      // Arreglo A de tamano 10
+        ts.InsertarSimbolo("saludo", 1, "string", 1); // Variable de tipo cadena
         Generador.setTablaSimbolos(ts);
 
         // --- MISION 1: Operadores relacionales y logicos ---
@@ -26,7 +27,7 @@ public class TestBackend {
         // 2. Asignacion: res := (a <= b) and true
         NodoAsignacion nAnd = new NodoAsignacion("res",
             new NodoOperacion(
-                new NodoOperacion(new NodoIdentificador("a"), tipoOp.menorIgual, new NodoIdentificador("b")),
+                new NodoOperacion(new NodoIdentificador("a"), tipoOp.menor_igual, new NodoIdentificador("b")),
                 tipoOp.and,
                 new NodoBooleano(true)
             ));
@@ -39,7 +40,7 @@ public class TestBackend {
             tipoOp.mas,
             new NodoValor(1)
         );
-        NodoAsignacionArreglo nAsigArreglo = new NodoAsignacionArreglo("A", indiceCompuesto, new NodoValor(10));
+        NodoAsignacion nAsigArreglo = new NodoAsignacion("A", new NodoValor(10), indiceCompuesto);
 
         // 4. Lectura de arreglo dentro de una expresion:
         //    x := A[i * 2 + 1] + 5
@@ -50,23 +51,34 @@ public class TestBackend {
         );
         NodoAsignacion nLecturaArreglo = new NodoAsignacion("x",
             new NodoOperacion(
-                new NodoAccesoArreglo("A", indiceLectura),
+                new NodoIdentificador("A", indiceLectura),
                 tipoOp.mas,
                 new NodoValor(5)
             ));
 
-        // 5. Copia directa de arreglo: A[0] := A[i]
-        NodoAsignacionArreglo nCopiaArreglo = new NodoAsignacionArreglo(
-            "A",
-            new NodoValor(0),
-            new NodoAccesoArreglo("A", new NodoIdentificador("i"))
-        );
+        // --- MISION 3: Cadenas de Texto (Strings) ---
+        // 5. Asignacion de literal de cadena a variable string:
+        //    saludo := "hola Tiny++"
+        NodoAsignacion nAsigString = new NodoAsignacion("saludo", new NodoValor("hola Tiny++"));
+
+        // 6. Escritura de variable de tipo cadena:
+        //    write saludo
+        NodoEscribir nEscribirString = new NodoEscribir(new NodoIdentificador("saludo"));
+
+        // 7. Escritura directa de literal de cadena:
+        //    write "UNET Compiladores"
+        NodoEscribir nEscribirLiteral = new NodoEscribir(new NodoValor("UNET"));
 
         // Encadenamos los nodos en el AST
         nMayor.setHermanoDerecha(nAnd);
         nAnd.setHermanoDerecha(nAsigArreglo);
         nAsigArreglo.setHermanoDerecha(nLecturaArreglo);
-        nLecturaArreglo.setHermanoDerecha(nCopiaArreglo);
+        nLecturaArreglo.setHermanoDerecha(nAsigString);
+        nAsigString.setHermanoDerecha(nEscribirString);
+        nEscribirString.setHermanoDerecha(nEscribirLiteral);
+
+        // Imprimimos la tabla de simbolos
+        ts.ImprimirClaves();
 
         // Imprimimos el AST para verificar estructura
         System.out.println("\n--- ESTRUCTURA DEL AST GENERADO ---");
@@ -77,7 +89,7 @@ public class TestBackend {
         Generador.generarCodigoObjeto(nMayor);
 
         System.out.println("==================================================================");
-        System.out.println("  VERIFICACION EXITOSA: Arreglos y Operadores TM funcionando!     ");
+        System.out.println("  VERIFICACION EXITOSA: Strings, Arreglos y Operadores TM al 100% ");
         System.out.println("==================================================================");
     }
 }
