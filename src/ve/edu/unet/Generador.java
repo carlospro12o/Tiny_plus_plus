@@ -63,6 +63,10 @@ public class Generador {
 				generarRepeat(nodo);
 			}else if (nodo instanceof NodoAsignacion){
 				generarAsignacion(nodo);
+			}else if (nodo instanceof NodoAsignacionArreglo){
+				generarAsignacionArreglo(nodo);
+			}else if (nodo instanceof NodoAccesoArreglo){
+				generarAccesoArreglo(nodo);
 			}else if (nodo instanceof NodoLeer){
 				generarLeer(nodo);
 			}else if (nodo instanceof NodoEscribir){
@@ -138,6 +142,55 @@ public class Generador {
 		direccion = tablaSimbolos.getDireccion(n.getIdentificador());
 		UtGen.emitirRM("ST", UtGen.AC, direccion, UtGen.GP, "asignacion: almaceno el valor para el id "+n.getIdentificador());
 		if(UtGen.debug) UtGen.emitirComentario("<- asignacion");
+	}
+
+	private static void generarAsignacionArreglo(NodoBase nodo){
+		NodoAsignacionArreglo n = (NodoAsignacionArreglo) nodo;
+		if(UtGen.debug) UtGen.emitirComentario("-> asignacion arreglo: " + n.getIdentificador() + "[...] :=");
+		
+		/* 1. Evaluar la expresion del indice. El resultado queda en AC (r0) */
+		generar(n.getIndice());
+		
+		/* 2. Obtener la direccion base del arreglo */
+		int dirBase = tablaSimbolos.getDireccion(n.getIdentificador());
+		
+		/* 3. Calcular la direccion efectiva del elemento: r2 = dirBase + GP + indice */
+		UtGen.emitirRM("LDA", UtGen.R2, dirBase, UtGen.GP, "asig arreglo: cargar direccion base de " + n.getIdentificador() + " en R2");
+		UtGen.emitirRO("ADD", UtGen.R2, UtGen.R2, UtGen.AC, "asig arreglo: sumar indice para direccion efectiva");
+		
+		/* 4. Guardar la direccion calculada (r2) en la pila temporal */
+		UtGen.emitirRM("ST", UtGen.R2, desplazamientoTmp--, UtGen.MP, "asig arreglo: push direccion destino en pila temporal");
+		
+		/* 5. Evaluar la expresion a la derecha de la asignacion. El valor queda en AC (r0) */
+		generar(n.getExpresion());
+		
+		/* 6. Recuperar la direccion de destino desde la pila temporal hacia AC1 (r1) */
+		UtGen.emitirRM("LD", UtGen.AC1, ++desplazamientoTmp, UtGen.MP, "asig arreglo: pop direccion destino en AC1");
+		
+		/* 7. Almacenar el valor de AC en la direccion apuntada por AC1 */
+		UtGen.emitirRM("ST", UtGen.AC, 0, UtGen.AC1, "asig arreglo: almacenar valor en " + n.getIdentificador() + "[indice]");
+		
+		if(UtGen.debug) UtGen.emitirComentario("<- asignacion arreglo: " + n.getIdentificador());
+	}
+
+	private static void generarAccesoArreglo(NodoBase nodo){
+		NodoAccesoArreglo n = (NodoAccesoArreglo) nodo;
+		if(UtGen.debug) UtGen.emitirComentario("-> acceso arreglo: " + n.getIdentificador() + "[...]");
+		
+		/* 1. Evaluar la expresion del indice. El resultado queda en AC (r0) */
+		generar(n.getIndice());
+		
+		/* 2. Obtener la direccion base del arreglo */
+		int dirBase = tablaSimbolos.getDireccion(n.getIdentificador());
+		
+		/* 3. Calcular la direccion efectiva del elemento: r2 = dirBase + GP + indice */
+		UtGen.emitirRM("LDA", UtGen.R2, dirBase, UtGen.GP, "arreglo: cargar direccion base de " + n.getIdentificador() + " en R2");
+		UtGen.emitirRO("ADD", UtGen.R2, UtGen.R2, UtGen.AC, "arreglo: sumar indice para direccion efectiva");
+		
+		/* 4. Cargar el valor de la casilla apuntada por r2 en AC */
+		UtGen.emitirRM("LD", UtGen.AC, 0, UtGen.R2, "arreglo: cargar en AC el valor de " + n.getIdentificador() + "[indice]");
+		
+		if(UtGen.debug) UtGen.emitirComentario("<- acceso arreglo: " + n.getIdentificador());
 	}
 	
 	private static void generarLeer(NodoBase nodo){
