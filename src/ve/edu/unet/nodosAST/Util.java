@@ -4,7 +4,7 @@ public class Util {
 	
 	static int sangria = 0;
 	
-	//Imprimo en modo texto con sangrias el AST
+	// Imprimo en modo texto con sangrias el AST
 	public static void imprimirAST(NodoBase raiz){
 		  sangria+=2;
 		  while (raiz != null) {
@@ -14,11 +14,16 @@ public class Util {
 		    else if (raiz instanceof  NodoRepeat)
 		    	System.out.println("Repeat");
 		    
-		    else if (raiz instanceof  NodoAsignacion)
-		    	System.out.println("Asignacion a: "+((NodoAsignacion)raiz).getIdentificador());
+		    else if (raiz instanceof  NodoAsignacion) {
+		    	NodoAsignacion asig = (NodoAsignacion) raiz;
+		    	if (asig.esArreglo())
+		    		System.out.println("Asignacion a arreglo: " + asig.getIdentificador());
+		    	else
+		    		System.out.println("Asignacion a: " + asig.getIdentificador());
+		    }
 
 		    else if (raiz instanceof NodoAsignacionArreglo)
-		    	System.out.println("Asignacion a Arreglo: "+((NodoAsignacionArreglo)raiz).getIdentificador()+"[...]");
+		    	System.out.println("Asignacion a Arreglo: " + ((NodoAsignacionArreglo)raiz).getIdentificador() + "[...]");
 
 		    else if (raiz instanceof  NodoLeer)  
 		    	System.out.println("Lectura: "+((NodoLeer)raiz).getIdentificador());
@@ -26,13 +31,35 @@ public class Util {
 		    else if (raiz instanceof  NodoEscribir)
 		    	System.out.println("Escribir");
 		    
+		    else if (raiz instanceof NodoDeclaracion) {
+		    	NodoDeclaracion dec = (NodoDeclaracion) raiz;
+		    	if (dec.esArreglo())
+		    		System.out.println("Declaracion Arreglo: " + dec.getTipo() + " " + dec.getIdentificador() + "[" + dec.getTamanoArreglo() + "]");
+		    	else
+		    		System.out.println("Declaracion: " + dec.getTipo() + " " + dec.getIdentificador());
+		    }
+
+		    else if (raiz instanceof NodoSubrutina) {
+		    	NodoSubrutina sub = (NodoSubrutina) raiz;
+		    	if (sub.esFuncion())
+		    		System.out.println("Funcion: " + sub.getTipoRetorno() + " " + sub.getIdentificador());
+		    	else
+		    		System.out.println("Procedimiento: " + sub.getIdentificador());
+		    }
+
+		    else if (raiz instanceof NodoReturn)
+		    	System.out.println("Return");
+
+		    else if (raiz instanceof NodoLlamada)
+		    	System.out.println("Llamada a: " + ((NodoLlamada)raiz).getIdentificador());
+
 		    else if (raiz instanceof NodoAccesoArreglo)
-		    	System.out.println("Acceso a Arreglo: "+((NodoAccesoArreglo)raiz).getIdentificador()+"[...]");
+		    	System.out.println("Acceso a Arreglo: " + ((NodoAccesoArreglo)raiz).getIdentificador() + "[...]");
 
 		    else if (raiz instanceof NodoOperacion
 		    		|| raiz instanceof NodoValor
 		    		|| raiz instanceof NodoBooleano
-		    		|| raiz instanceof NodoIdentificador )
+		    		|| raiz instanceof NodoIdentificador)
 		    	imprimirNodo(raiz);
 		    else System.out.println("Tipo de nodo desconocido: " + raiz.getClass().getSimpleName());
 		    
@@ -58,8 +85,17 @@ public class Util {
 		    	System.out.println("**Prueba REPEAT**");
 		    	imprimirAST(((NodoRepeat)raiz).getPrueba());
 		    }
-		    else if (raiz instanceof  NodoAsignacion)
-		    	imprimirAST(((NodoAsignacion)raiz).getExpresion());
+		    else if (raiz instanceof  NodoAsignacion) {
+		    	NodoAsignacion asig = (NodoAsignacion) raiz;
+		    	if (asig.esArreglo()) {
+		    		printSpaces();
+		    		System.out.println("**Indice Arreglo**");
+		    		imprimirAST(asig.getIndice());
+		    	}
+		    	printSpaces();
+		    	System.out.println("**Valor Asignacion**");
+		    	imprimirAST(asig.getExpresion());
+		    }
 		    else if (raiz instanceof NodoAsignacionArreglo){
 		    	printSpaces();
 		    	System.out.println("**Indice de Asignacion**");
@@ -75,12 +111,47 @@ public class Util {
 		    }
 		    else if (raiz instanceof  NodoEscribir)
 		    	imprimirAST(((NodoEscribir)raiz).getExpresion());
-		    else if (raiz instanceof NodoOperacion){
-		    	if (((NodoOperacion)raiz).getOpIzquierdo() != null) {
+		    else if (raiz instanceof NodoIdentificador) {
+		    	NodoIdentificador id = (NodoIdentificador) raiz;
+		    	if (id.esArreglo()) {
 		    		printSpaces();
-		    		System.out.println("**Expr Izquierda Operacion**");
-		    		imprimirAST(((NodoOperacion)raiz).getOpIzquierdo());
+		    		System.out.println("**Indice Arreglo**");
+		    		imprimirAST(id.getIndice());
 		    	}
+		    }
+		    else if (raiz instanceof NodoSubrutina) {
+		    	NodoSubrutina sub = (NodoSubrutina) raiz;
+		    	if (sub.getParametros() != null) {
+		    		printSpaces();
+		    		System.out.println("**Parametros**");
+		    		imprimirAST(sub.getParametros());
+		    	}
+		    	if (sub.getCuerpo() != null) {
+		    		printSpaces();
+		    		System.out.println("**Cuerpo Subrutina**");
+		    		imprimirAST(sub.getCuerpo());
+		    	}
+		    }
+		    else if (raiz instanceof NodoReturn) {
+		    	NodoReturn ret = (NodoReturn) raiz;
+		    	if (ret.tieneExpresion()) {
+		    		printSpaces();
+		    		System.out.println("**Valor Return**");
+		    		imprimirAST(ret.getExpresion());
+		    	}
+		    }
+		    else if (raiz instanceof NodoLlamada) {
+		    	NodoLlamada call = (NodoLlamada) raiz;
+		    	if (call.getArgumentos() != null) {
+		    		printSpaces();
+		    		System.out.println("**Argumentos Llamada**");
+		    		imprimirAST(call.getArgumentos());
+		    	}
+		    }
+		    else if (raiz instanceof NodoOperacion){
+		    	printSpaces();
+		    	System.out.println("**Expr Izquierda Operacion**");
+		    	imprimirAST(((NodoOperacion)raiz).getOpIzquierdo());
 		    	if (((NodoOperacion)raiz).getOpDerecho() != null) {
 		    		printSpaces();
 		    		System.out.println("**Expr Derecha Operacion**");		    	
@@ -115,21 +186,27 @@ static void imprimirNodo( NodoBase raiz )
 		tipoOp sel=((NodoOperacion) raiz).getOperacion();
 		if(sel==tipoOp.menor) System.out.println("<"); 
 		if(sel==tipoOp.igual) System.out.println("=");
+		if(sel==tipoOp.mayor) System.out.println(">");
+		if(sel==tipoOp.menor_igual || sel==tipoOp.menorIgual) System.out.println("<=");
+		if(sel==tipoOp.mayor_igual || sel==tipoOp.mayorIgual) System.out.println(">=");
+		if(sel==tipoOp.distinto || sel==tipoOp.diferente) System.out.println("!=");
+		if(sel==tipoOp.and || sel==tipoOp.y) System.out.println("and");
+		if(sel==tipoOp.or || sel==tipoOp.o) System.out.println("or");
+		if(sel==tipoOp.not || sel==tipoOp.no) System.out.println("not");
 		if(sel==tipoOp.mas) System.out.println("+");
 		if(sel==tipoOp.menos) System.out.println("-");
 		if(sel==tipoOp.por) System.out.println("*");
 		if(sel==tipoOp.entre) System.out.println("/");
-		if(sel==tipoOp.mayor) System.out.println(">");
-		if(sel==tipoOp.menorIgual) System.out.println("<=");
-		if(sel==tipoOp.mayorIgual) System.out.println(">=");
-		if(sel==tipoOp.diferente) System.out.println("!=");
-		if(sel==tipoOp.y || sel==tipoOp.and) System.out.println("and");
-		if(sel==tipoOp.o || sel==tipoOp.or) System.out.println("or");
-		if(sel==tipoOp.no || sel==tipoOp.not) System.out.println("not");
 	}
 
 	if(	raiz instanceof NodoValor ){
-		System.out.println("NUM, val= "+ ((NodoValor)raiz).getValor());
+		NodoValor val = (NodoValor) raiz;
+		if (val.esCadena())
+			System.out.println("STR, val= \""+ val.getValorObjeto() + "\"");
+		else if (val.esBooleano())
+			System.out.println("BOOL, val= "+ val.getValorObjeto());
+		else
+			System.out.println("NUM, val= "+ val.getValor());
 	}
 
 	if(	raiz instanceof NodoBooleano ){
@@ -137,7 +214,11 @@ static void imprimirNodo( NodoBase raiz )
 	}
 
 	if(	raiz instanceof NodoIdentificador ){
-		System.out.println("ID, nombre= "+ ((NodoIdentificador)raiz).getNombre());
+		NodoIdentificador id = (NodoIdentificador) raiz;
+		if (id.esArreglo())
+			System.out.println("ID (arreglo), nombre= "+ id.getNombre());
+		else
+			System.out.println("ID, nombre= "+ id.getNombre());
 	}
 
 }

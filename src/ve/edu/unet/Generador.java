@@ -4,7 +4,7 @@ import ve.edu.unet.nodosAST.*;
 
 public class Generador {
 	/* Ilustracion de la disposicion de la memoria en
-	 * este ambiente de ejecucion para el lenguaje Tiny
+	 * este ambiente de ejecucion para el lenguaje Tiny++
 	 *
 	 * |t1	|<- mp (Maxima posicion de memoria de la TM)
 	 * |t1	|<- desplazamientoTmp (tope actual)
@@ -20,15 +20,6 @@ public class Generador {
 	 * y empleada como el desplazamiento de la siguiente localidad
 	 * temporal disponible desde la parte superior o tope de la memoria
 	 * (la que apunta el registro MP).
-	 * 
-	 * - Se decrementa (desplazamientoTmp--) despues de cada almacenamiento y
-	 * 
-	 * - Se incrementa (desplazamientoTmp++) despues de cada eliminacion/carga en 
-	 *   otra variable de un valor de la pila.
-	 * 
-	 * Pudiendose ver como el apuntador hacia el tope de la pila temporal
-	 * y las llamadas a la funcion emitirRM corresponden a una inserccion 
-	 * y extraccion de esta pila
 	 */
 	private static int desplazamientoTmp = 0;
 	private static TablaSimbolos tablaSimbolos = null;
@@ -62,23 +53,48 @@ public class Generador {
 			}else if (nodo instanceof NodoRepeat){
 				generarRepeat(nodo);
 			}else if (nodo instanceof NodoAsignacion){
-				generarAsignacion(nodo);
+				NodoAsignacion asig = (NodoAsignacion) nodo;
+				if (asig.esArreglo())
+					generarAsignacionArreglo(asig.getIdentificador(), asig.getIndice(), asig.getExpresion());
+				else
+					generarAsignacion(nodo);
 			}else if (nodo instanceof NodoAsignacionArreglo){
-				generarAsignacionArreglo(nodo);
+				NodoAsignacionArreglo asig = (NodoAsignacionArreglo) nodo;
+				generarAsignacionArreglo(asig.getIdentificador(), asig.getIndice(), asig.getExpresion());
 			}else if (nodo instanceof NodoAccesoArreglo){
-				generarAccesoArreglo(nodo);
+				NodoAccesoArreglo acc = (NodoAccesoArreglo) nodo;
+				generarAccesoArreglo(acc.getIdentificador(), acc.getIndice());
 			}else if (nodo instanceof NodoLeer){
 				generarLeer(nodo);
 			}else if (nodo instanceof NodoEscribir){
 				generarEscribir(nodo);
 			}else if (nodo instanceof NodoValor){
-				generarValor(nodo);
+				NodoValor val = (NodoValor) nodo;
+				if (val.esBooleano())
+					generarBooleanoDirecto((Boolean) val.getValorObjeto());
+				else
+					generarValor(nodo);
 			}else if (nodo instanceof NodoBooleano){
-				generarBooleano(nodo);
+				generarBooleanoDirecto(((NodoBooleano)nodo).getValor());
 			}else if (nodo instanceof NodoIdentificador){
-				generarIdentificador(nodo);
+				NodoIdentificador id = (NodoIdentificador) nodo;
+				if (id.esArreglo())
+					generarAccesoArreglo(id.getNombre(), id.getIndice());
+				else
+					generarIdentificador(nodo);
 			}else if (nodo instanceof NodoOperacion){
 				generarOperacion(nodo);
+			}else if (nodo instanceof NodoDeclaracion){
+				// Las declaraciones reservan espacio en la tabla de simbolos, no emiten codigo directo aqui
+				if(UtGen.debug) UtGen.emitirComentario("declaracion: " + ((NodoDeclaracion)nodo).getIdentificador());
+			}else if (nodo instanceof NodoSubrutina){
+				if(UtGen.debug) UtGen.emitirComentario("subrutina: " + ((NodoSubrutina)nodo).getIdentificador());
+			}else if (nodo instanceof NodoReturn){
+				if(UtGen.debug) UtGen.emitirComentario("return");
+				NodoReturn ret = (NodoReturn) nodo;
+				if (ret.tieneExpresion()) generar(ret.getExpresion());
+			}else if (nodo instanceof NodoLlamada){
+				if(UtGen.debug) UtGen.emitirComentario("llamada: " + ((NodoLlamada)nodo).getIdentificador());
 			}else{
 				System.out.println("BUG: Tipo de nodo a generar desconocido: " + nodo.getClass().getSimpleName());
 			}
@@ -144,53 +160,51 @@ public class Generador {
 		if(UtGen.debug) UtGen.emitirComentario("<- asignacion");
 	}
 
-	private static void generarAsignacionArreglo(NodoBase nodo){
-		NodoAsignacionArreglo n = (NodoAsignacionArreglo) nodo;
-		if(UtGen.debug) UtGen.emitirComentario("-> asignacion arreglo: " + n.getIdentificador() + "[...] :=");
+	private static void generarAsignacionArreglo(String identificador, NodoBase indice, NodoBase expresion){
+		if(UtGen.debug) UtGen.emitirComentario("-> asignacion arreglo: " + identificador + "[...] :=");
 		
 		/* 1. Evaluar la expresion del indice. El resultado queda en AC (r0) */
-		generar(n.getIndice());
+		generar(indice);
 		
 		/* 2. Obtener la direccion base del arreglo */
-		int dirBase = tablaSimbolos.getDireccion(n.getIdentificador());
+		int dirBase = tablaSimbolos.getDireccion(identificador);
 		
 		/* 3. Calcular la direccion efectiva del elemento: r2 = dirBase + GP + indice */
-		UtGen.emitirRM("LDA", UtGen.R2, dirBase, UtGen.GP, "asig arreglo: cargar direccion base de " + n.getIdentificador() + " en R2");
+		UtGen.emitirRM("LDA", UtGen.R2, dirBase, UtGen.GP, "asig arreglo: cargar direccion base de " + identificador + " en R2");
 		UtGen.emitirRO("ADD", UtGen.R2, UtGen.R2, UtGen.AC, "asig arreglo: sumar indice para direccion efectiva");
 		
 		/* 4. Guardar la direccion calculada (r2) en la pila temporal */
 		UtGen.emitirRM("ST", UtGen.R2, desplazamientoTmp--, UtGen.MP, "asig arreglo: push direccion destino en pila temporal");
 		
 		/* 5. Evaluar la expresion a la derecha de la asignacion. El valor queda en AC (r0) */
-		generar(n.getExpresion());
+		generar(expresion);
 		
 		/* 6. Recuperar la direccion de destino desde la pila temporal hacia AC1 (r1) */
 		UtGen.emitirRM("LD", UtGen.AC1, ++desplazamientoTmp, UtGen.MP, "asig arreglo: pop direccion destino en AC1");
 		
 		/* 7. Almacenar el valor de AC en la direccion apuntada por AC1 */
-		UtGen.emitirRM("ST", UtGen.AC, 0, UtGen.AC1, "asig arreglo: almacenar valor en " + n.getIdentificador() + "[indice]");
+		UtGen.emitirRM("ST", UtGen.AC, 0, UtGen.AC1, "asig arreglo: almacenar valor en " + identificador + "[indice]");
 		
-		if(UtGen.debug) UtGen.emitirComentario("<- asignacion arreglo: " + n.getIdentificador());
+		if(UtGen.debug) UtGen.emitirComentario("<- asignacion arreglo: " + identificador);
 	}
 
-	private static void generarAccesoArreglo(NodoBase nodo){
-		NodoAccesoArreglo n = (NodoAccesoArreglo) nodo;
-		if(UtGen.debug) UtGen.emitirComentario("-> acceso arreglo: " + n.getIdentificador() + "[...]");
+	private static void generarAccesoArreglo(String identificador, NodoBase indice){
+		if(UtGen.debug) UtGen.emitirComentario("-> acceso arreglo: " + identificador + "[...]");
 		
 		/* 1. Evaluar la expresion del indice. El resultado queda en AC (r0) */
-		generar(n.getIndice());
+		generar(indice);
 		
 		/* 2. Obtener la direccion base del arreglo */
-		int dirBase = tablaSimbolos.getDireccion(n.getIdentificador());
+		int dirBase = tablaSimbolos.getDireccion(identificador);
 		
 		/* 3. Calcular la direccion efectiva del elemento: r2 = dirBase + GP + indice */
-		UtGen.emitirRM("LDA", UtGen.R2, dirBase, UtGen.GP, "arreglo: cargar direccion base de " + n.getIdentificador() + " en R2");
+		UtGen.emitirRM("LDA", UtGen.R2, dirBase, UtGen.GP, "arreglo: cargar direccion base de " + identificador + " en R2");
 		UtGen.emitirRO("ADD", UtGen.R2, UtGen.R2, UtGen.AC, "arreglo: sumar indice para direccion efectiva");
 		
 		/* 4. Cargar el valor de la casilla apuntada por r2 en AC */
-		UtGen.emitirRM("LD", UtGen.AC, 0, UtGen.R2, "arreglo: cargar en AC el valor de " + n.getIdentificador() + "[indice]");
+		UtGen.emitirRM("LD", UtGen.AC, 0, UtGen.R2, "arreglo: cargar en AC el valor de " + identificador + "[indice]");
 		
-		if(UtGen.debug) UtGen.emitirComentario("<- acceso arreglo: " + n.getIdentificador());
+		if(UtGen.debug) UtGen.emitirComentario("<- acceso arreglo: " + identificador);
 	}
 	
 	private static void generarLeer(NodoBase nodo){
@@ -220,11 +234,10 @@ public class Generador {
 		if(UtGen.debug) UtGen.emitirComentario("<- constante");
 	}
 
-	private static void generarBooleano(NodoBase nodo){
-		NodoBooleano n = (NodoBooleano)nodo;
+	private static void generarBooleanoDirecto(boolean valor){
 		if(UtGen.debug) UtGen.emitirComentario("-> booleano");
-		int val = n.getValor() ? 1 : 0;
-		UtGen.emitirRM("LDC", UtGen.AC, val, 0, "cargar booleano: " + (n.getValor() ? "true (1)" : "false (0)"));
+		int val = valor ? 1 : 0;
+		UtGen.emitirRM("LDC", UtGen.AC, val, 0, "cargar booleano: " + (valor ? "true (1)" : "false (0)"));
 		if(UtGen.debug) UtGen.emitirComentario("<- booleano");
 	}
 	
@@ -293,6 +306,7 @@ public class Generador {
 				UtGen.emitirRM("LDC", UtGen.AC, 1, UtGen.AC, "caso de verdadero (AC=1)");
 				break;
 
+			case menor_igual:
 			case menorIgual:
 				UtGen.emitirRO("SUB", UtGen.AC, UtGen.AC1, UtGen.AC, "op: <= (AC1 - AC)");
 				UtGen.emitirRM("JLE", UtGen.AC, 2, UtGen.PC, "voy dos instrucciones mas alla if verdadero (AC<=0)");
@@ -301,6 +315,7 @@ public class Generador {
 				UtGen.emitirRM("LDC", UtGen.AC, 1, UtGen.AC, "caso de verdadero (AC=1)");
 				break;
 
+			case mayor_igual:
 			case mayorIgual:
 				UtGen.emitirRO("SUB", UtGen.AC, UtGen.AC1, UtGen.AC, "op: >= (AC1 - AC)");
 				UtGen.emitirRM("JGE", UtGen.AC, 2, UtGen.PC, "voy dos instrucciones mas alla if verdadero (AC>=0)");
@@ -317,6 +332,7 @@ public class Generador {
 				UtGen.emitirRM("LDC", UtGen.AC, 1, UtGen.AC, "caso de verdadero (AC=1)");
 				break;
 
+			case distinto:
 			case diferente:
 				UtGen.emitirRO("SUB", UtGen.AC, UtGen.AC1, UtGen.AC, "op: != (AC1 - AC)");
 				UtGen.emitirRM("JNE", UtGen.AC, 2, UtGen.PC, "voy dos instrucciones mas alla if verdadero (AC!=0)");

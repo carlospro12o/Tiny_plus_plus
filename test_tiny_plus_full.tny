@@ -1,0 +1,28 @@
+int x;
+bool flag;
+string saludo;
+int V[5];
+
+function int multiplicar(int a, int b)
+    return a * b
+end;
+
+procedure mostrar(int val)
+    write val
+end;
+
+x := 10;
+flag := true;
+saludo := "hola Tiny++";
+V[0] := x + 5;
+V[1] := multiplicar(x, 2);
+
+if V[0] > 10 and flag then
+    mostrar(V[1])
+else
+    write 0
+end;
+
+repeat
+    x := x - 1
+until x = 0
