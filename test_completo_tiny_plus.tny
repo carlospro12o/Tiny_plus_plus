@@ -1,0 +1,33 @@
+int globalX;
+bool flag;
+string mensaje;
+int arr[5];
+
+function int sumar(int a, int b)
+    int res;
+    res := a + b;
+    return res
+end;
+
+procedure imprimirAlerta(string msg)
+    write msg
+end;
+
+globalX := 10;
+flag := true;
+mensaje := "inicio de prueba";
+
+imprimirAlerta(mensaje);
+
+if flag and not (globalX < 5) then
+    arr[0] := globalX;
+    arr[1] := sumar(arr[0], 5);
+    write arr[1]
+else
+    arr[0] := 0
+end;
+
+repeat
+    arr[0] := arr[0] - 1;
+    write arr[0]
+until arr[0] <= 5

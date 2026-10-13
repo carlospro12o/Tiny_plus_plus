@@ -58,9 +58,23 @@ Mas informacion en: http//4thmouse.com/index.php/2007/02/15/using-custom-symbols
 
 		TablaSimbolos ts = new TablaSimbolos();
 
-		ts.cargarTabla(root);
+		ChequeadorSemantico semantico = new ChequeadorSemantico(ts);
+
+		boolean exitoSemantico = semantico.analizar(root);
 
 		ts.ImprimirClaves();
+
+		if (!exitoSemantico) {
+			System.err.println();
+			System.err.println("*********************************************************");
+			System.err.println("       ERRORES SEMANTICOS DETECTADOS EN LA COMPILACION   ");
+			System.err.println("*********************************************************");
+			semantico.imprimirErrores();
+			System.err.println("*********************************************************");
+			System.err.println();
+			System.out.println("Compilacion detenida debido a errores semanticos.");
+			return;
+		}
 
 		Generador.setTablaSimbolos(ts);
 
@@ -388,7 +402,7 @@ stmt        ::= if_stmt:sif	{: if(debug) System.out.println("\t regla 3a");
 
             | ID:nombre args:a  {: if(debug) System.out.println("\t llamada a procedimiento: " + nombre);
 
-                                   RESULT = new NodoLlamada(nombre.toString(), a);
+                                   RESULT = new NodoLlamada(nombre.toString(), a, nombreleft);
 
                                 :}
 
@@ -410,15 +424,15 @@ stmt        ::= if_stmt:sif	{: if(debug) System.out.println("\t regla 3a");
 
 
 
-if_stmt     ::= IF exp:ex THEN stmt_seq:pthen END	{: if(debug) System.out.println("\t regla 4a"); 
+if_stmt     ::= IF:i exp:ex THEN stmt_seq:pthen END	{: if(debug) System.out.println("\t regla 4a"); 
 
-		RESULT = new NodoIf(ex,pthen);
+		RESULT = new NodoIf(ex,pthen,ileft);
 
 		:}
 
-		| IF exp:ex THEN stmt_seq:pthen ELSE stmt_seq:pelse END	{: if(debug) System.out.println("\t regla 4b"); 
+		| IF:i exp:ex THEN stmt_seq:pthen ELSE stmt_seq:pelse END	{: if(debug) System.out.println("\t regla 4b"); 
 
-		RESULT = new NodoIf(ex,pthen,pelse);		
+		RESULT = new NodoIf(ex,pthen,pelse,ileft);		
 
 		:}
 
@@ -426,9 +440,9 @@ if_stmt     ::= IF exp:ex THEN stmt_seq:pthen END	{: if(debug) System.out.printl
 
 
 
-repeat_stmt ::= REPEAT stmt_seq:cuerpo UNTIL exp:prueba	{: if(debug) System.out.println("\t regla 5"); 
+repeat_stmt ::= REPEAT:r stmt_seq:cuerpo UNTIL exp:prueba	{: if(debug) System.out.println("\t regla 5"); 
 
-							RESULT = new NodoRepeat(cuerpo,prueba);
+							RESULT = new NodoRepeat(cuerpo,prueba,rleft);
 
 							:}
 
@@ -444,7 +458,7 @@ repeat_stmt ::= REPEAT stmt_seq:cuerpo UNTIL exp:prueba	{: if(debug) System.out.
 
 assign_stmt ::= ID:variable ASSIGN exp:ex
 
-                {: if(variable!=null) RESULT = new NodoAsignacion(variable.toString(),ex);
+                {: if(variable!=null) RESULT = new NodoAsignacion(variable.toString(),ex,variableleft);
 
                    else RESULT = null;
 
@@ -456,7 +470,7 @@ assign_stmt ::= ID:variable ASSIGN exp:ex
 
                 {: if(debug) System.out.println("\t asignacion arreglo: " + variable);
 
-                   RESULT = new NodoAsignacion(variable.toString(), ex, idx);
+                   RESULT = new NodoAsignacion(variable.toString(), ex, idx, variableleft);
 
                 :}
 
@@ -470,13 +484,13 @@ assign_stmt ::= ID:variable ASSIGN exp:ex
 
 
 
-read_stmt   ::= READ ID:variable	{: if(debug) System.out.println("\t regla 7"); 
+read_stmt   ::= READ:r ID:variable	{: if(debug) System.out.println("\t regla 7"); 
 
 					System.out.println("Leyendo Variable");
 
 					if(variable!=null)
 
-					RESULT = new NodoLeer(variable.toString());
+					RESULT = new NodoLeer(variable.toString(), rleft);
 
 					else{
 
@@ -492,9 +506,9 @@ read_stmt   ::= READ ID:variable	{: if(debug) System.out.println("\t regla 7");
 
 
 
-write_stmt  ::= WRITE exp:ex	{: if(debug) System.out.println("\t regla 8"); 
+write_stmt  ::= WRITE:w exp:ex	{: if(debug) System.out.println("\t regla 8"); 
 
-					RESULT= new NodoEscribir(ex);
+					RESULT= new NodoEscribir(ex, wleft);
 
 					:}
 
@@ -530,7 +544,7 @@ var_decl    ::= tipo:t ID:variable
 
                 {: if(debug) System.out.println("\t declaracion variable: " + variable);
 
-                   RESULT = new NodoDeclaracion(t, variable.toString());
+                   RESULT = new NodoDeclaracion(t, variable.toString(), variableleft);
 
                 :}
 
@@ -544,7 +558,7 @@ vec_decl    ::= tipo:t ID:variable LBRACKET NUM:tam RBRACKET
 
                 {: if(debug) System.out.println("\t declaracion arreglo: " + variable + "[" + tam + "]");
 
-                   RESULT = new NodoDeclaracion(t, variable.toString(), Integer.parseInt(tam));
+                   RESULT = new NodoDeclaracion(t, variable.toString(), Integer.valueOf(tam), variableleft);
 
                 :}
 
@@ -600,7 +614,7 @@ param_list  ::= param_list:ini COMMA param:p
 
 param       ::= tipo:t ID:nombre
 
-                {: RESULT = new NodoDeclaracion(t, nombre.toString()); :}
+                {: RESULT = new NodoDeclaracion(t, nombre.toString(), nombreleft); :}
 
             ;
 
@@ -608,11 +622,11 @@ param       ::= tipo:t ID:nombre
 
 /* procedure saludar(int x) ... end */
 
-proc_decl   ::= PROCEDURE ID:nombre params:p stmt_seq:cuerpo END
+proc_decl   ::= PROCEDURE:pr ID:nombre params:p stmt_seq:cuerpo END
 
                 {: if(debug) System.out.println("\t declaracion procedimiento: " + nombre);
 
-                   RESULT = new NodoSubrutina(null, nombre.toString(), p, cuerpo);
+                   RESULT = new NodoSubrutina(null, nombre.toString(), p, cuerpo, prleft);
 
                 :}
 
@@ -622,11 +636,11 @@ proc_decl   ::= PROCEDURE ID:nombre params:p stmt_seq:cuerpo END
 
 /* function int suma(int a, int b) ... end */
 
-func_decl   ::= FUNCTION tipo:t ID:nombre params:p stmt_seq:cuerpo END
+func_decl   ::= FUNCTION:f tipo:t ID:nombre params:p stmt_seq:cuerpo END
 
                 {: if(debug) System.out.println("\t declaracion funcion: " + nombre);
 
-                   RESULT = new NodoSubrutina(t, nombre.toString(), p, cuerpo);
+                   RESULT = new NodoSubrutina(t, nombre.toString(), p, cuerpo, fleft);
 
                 :}
 
@@ -634,19 +648,19 @@ func_decl   ::= FUNCTION tipo:t ID:nombre params:p stmt_seq:cuerpo END
 
 
 
-return_stmt ::= RETURN exp:ex
+return_stmt ::= RETURN:r exp:ex
 
                 {: if(debug) System.out.println("\t return exp");
 
-                   RESULT = new NodoReturn(ex);
+                   RESULT = new NodoReturn(ex, rleft);
 
                 :}
 
-            | RETURN
+            | RETURN:r
 
                 {: if(debug) System.out.println("\t return vacio");
 
-                   RESULT = new NodoReturn();
+                   RESULT = new NodoReturn(rleft);
 
                 :}
 
@@ -708,23 +722,23 @@ arg_list    ::= arg_list:ini COMMA exp:ex
 
 
 
-exp         ::= simple_exp:exI LT simple_exp:exD   {: RESULT = new NodoOperacion(exI, tipoOp.menor, exD); :}
+exp         ::= simple_exp:exI LT:op simple_exp:exD   {: RESULT = new NodoOperacion(exI, tipoOp.menor, exD, opleft); :}
 
-            | simple_exp:exI EQ simple_exp:exD   {: RESULT = new NodoOperacion(exI, tipoOp.igual, exD); :}
+            | simple_exp:exI EQ:op simple_exp:exD   {: RESULT = new NodoOperacion(exI, tipoOp.igual, exD, opleft); :}
 
-            | simple_exp:exI GT simple_exp:exD   {: RESULT = new NodoOperacion(exI, tipoOp.mayor, exD); :}
+            | simple_exp:exI GT:op simple_exp:exD   {: RESULT = new NodoOperacion(exI, tipoOp.mayor, exD, opleft); :}
 
-            | simple_exp:exI LE simple_exp:exD   {: RESULT = new NodoOperacion(exI, tipoOp.menor_igual, exD); :}
+            | simple_exp:exI LE:op simple_exp:exD   {: RESULT = new NodoOperacion(exI, tipoOp.menor_igual, exD, opleft); :}
 
-            | simple_exp:exI GE simple_exp:exD   {: RESULT = new NodoOperacion(exI, tipoOp.mayor_igual, exD); :}
+            | simple_exp:exI GE:op simple_exp:exD   {: RESULT = new NodoOperacion(exI, tipoOp.mayor_igual, exD, opleft); :}
 
-            | simple_exp:exI NE simple_exp:exD   {: RESULT = new NodoOperacion(exI, tipoOp.distinto, exD); :}
+            | simple_exp:exI NE:op simple_exp:exD   {: RESULT = new NodoOperacion(exI, tipoOp.distinto, exD, opleft); :}
 
-            | exp:exI AND exp:exD                {: RESULT = new NodoOperacion(exI, tipoOp.and, exD); :}
+            | exp:exI AND:op exp:exD                {: RESULT = new NodoOperacion(exI, tipoOp.and, exD, opleft); :}
 
-            | exp:exI OR exp:exD                 {: RESULT = new NodoOperacion(exI, tipoOp.or, exD); :}
+            | exp:exI OR:op exp:exD                 {: RESULT = new NodoOperacion(exI, tipoOp.or, exD, opleft); :}
 
-            | NOT exp:ex                         {: RESULT = new NodoOperacion(tipoOp.not, ex); :}
+            | NOT:op exp:ex                         {: RESULT = new NodoOperacion(tipoOp.not, ex, opleft); :}
 
             | simple_exp:ex                      {: RESULT = ex; :}
 
@@ -736,15 +750,15 @@ exp         ::= simple_exp:exI LT simple_exp:exD   {: RESULT = new NodoOperacion
 
 
 
-simple_exp  ::= simple_exp:exI PLUS term:exD	{: if(debug) System.out.println("\t regla 10a"); 
+simple_exp  ::= simple_exp:exI PLUS:op term:exD	{: if(debug) System.out.println("\t regla 10a"); 
 
-							RESULT = new NodoOperacion(exI,tipoOp.mas,exD);
+							RESULT = new NodoOperacion(exI,tipoOp.mas,exD,opleft);
 
 							:}
 
-		| simple_exp:exI MINUS term:exD	{: if(debug) System.out.println("\t regla 10b"); 
+		| simple_exp:exI MINUS:op term:exD	{: if(debug) System.out.println("\t regla 10b"); 
 
-							RESULT = new NodoOperacion(exI,tipoOp.menos,exD);
+							RESULT = new NodoOperacion(exI,tipoOp.menos,exD,opleft);
 
 							:}
 
@@ -758,15 +772,15 @@ simple_exp  ::= simple_exp:exI PLUS term:exD	{: if(debug) System.out.println("\t
 
 
 
-term        ::= term:exI TIMES factor:exD	{: if(debug) System.out.println("\t regla 11a"); 
+term        ::= term:exI TIMES:op factor:exD	{: if(debug) System.out.println("\t regla 11a"); 
 
-							RESULT = new NodoOperacion(exI,tipoOp.por,exD);
+							RESULT = new NodoOperacion(exI,tipoOp.por,exD,opleft);
 
 							:}
 
-		| term:exI OVER factor:exD	{: if(debug) System.out.println("\t regla 11b"); 
+		| term:exI OVER:op factor:exD	{: if(debug) System.out.println("\t regla 11b"); 
 
-						RESULT = new NodoOperacion(exI,tipoOp.entre,exD);
+						RESULT = new NodoOperacion(exI,tipoOp.entre,exD,opleft);
 
 						:}
 
@@ -792,25 +806,25 @@ term        ::= term:exI TIMES factor:exD	{: if(debug) System.out.println("\t re
 
 factor      ::= LPAREN exp:ex RPAREN             {: RESULT = ex; :}
 
-            | NUM:valor                          {: RESULT = new NodoValor(Integer.parseInt(valor)); :}
+            | NUM:valor                          {: RESULT = new NodoValor(Integer.parseInt(valor), valorleft); :}
 
-            | ID:variable                        {: RESULT = new NodoIdentificador(variable.toString()); :}
+            | ID:variable                        {: RESULT = new NodoIdentificador(variable.toString(), variableleft); :}
 
             /* Acceso a arreglo: A[i*2+1] */
 
-            | ID:variable LBRACKET exp:idx RBRACKET {: RESULT = new NodoIdentificador(variable.toString(), idx); :}
+            | ID:variable LBRACKET exp:idx RBRACKET {: RESULT = new NodoIdentificador(variable.toString(), idx, variableleft); :}
 
             /* Llamada a funcion: suma(1, 2) */
 
-            | ID:nombre args:a                   {: RESULT = new NodoLlamada(nombre.toString(), a); :}
+            | ID:nombre args:a                   {: RESULT = new NodoLlamada(nombre.toString(), a, nombreleft); :}
 
             /* Literales nuevos */
 
-            | TRUE                               {: RESULT = new NodoValor(true); :}
+            | TRUE:t                             {: RESULT = new NodoValor(true, tleft); :}
 
-            | FALSE                              {: RESULT = new NodoValor(false); :}
+            | FALSE:f                            {: RESULT = new NodoValor(false, fleft); :}
 
-            | STR:cad                            {: RESULT = new NodoValor(cad.toString()); :}
+            | STR:cad                            {: RESULT = new NodoValor(cad.toString(), cadleft); :}
 
             | error                              {: RESULT = null; :}
 

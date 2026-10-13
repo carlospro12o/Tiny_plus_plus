@@ -1,0 +1,19 @@
+int x;
+int total;
+
+function int suma(int a, int b)
+    int x;
+    int temp;
+    x := a + b;
+    temp := x;
+    return temp
+end;
+
+procedure imprimirResultado(int r)
+    write r
+end;
+
+x := 10;
+total := suma(5, 15);
+imprimirResultado(total);
+write x
