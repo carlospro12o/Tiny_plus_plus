@@ -1,0 +1,274 @@
+/* ═══════════════════════════════════════════════════════════════
+   EDITOR.CSS — Estilos del Editor de Código Tiny++ y Consola Visual
+   ═══════════════════════════════════════════════════════════════
+   
+   Estructura:
+   1. Editor Header / Tabs (archivo activo, controles de editor)
+   2. Editor Body (Gutter con números de línea + Textarea de código)
+   3. Panel Inferior de Consola (Tabs, Barra de herramientas, Salida con colores)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Panel del Editor (Mitad Superior Izquierda) ───────────── */
+#editor-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  background: var(--bg0);
+  border-bottom: 2px solid var(--border);
+  position: relative;
+}
+
+/* Header con Tabs del Editor */
+.editor-tabs {
+  display: flex;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px 0 0;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.editor-tab-group {
+  display: flex;
+  height: 100%;
+}
+
+.editor-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  background: var(--bg0);
+  color: var(--pink2);
+  font-size: 11px;
+  font-weight: 500;
+  border-right: 1px solid var(--border);
+  border-top: 2px solid var(--pink);
+  cursor: default;
+  user-select: none;
+}
+
+.editor-tab .file-icon {
+  font-size: 12px;
+  color: var(--pink);
+}
+
+.editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Contenedor del código: Gutter + Textarea */
+.editor-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  background: var(--bg0);
+  overflow: hidden;
+}
+
+/* Gutter: Columna con números de línea */
+.editor-gutter {
+  width: 44px;
+  background: var(--bg1);
+  border-right: 1px solid var(--border);
+  padding: 10px 0;
+  user-select: none;
+  overflow: hidden;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.editor-gutter .line-num {
+  font-family: var(--font);
+  font-size: 12px;
+  line-height: 20px;
+  padding-right: 10px;
+  color: var(--text3);
+  display: block;
+}
+
+.editor-gutter .line-num.active {
+  color: var(--pink2);
+  font-weight: 600;
+}
+
+/* Textarea donde el usuario tipea el código Tiny++ */
+.editor-textarea {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12px;
+  line-height: 20px;
+  border: none;
+  outline: none;
+  resize: none;
+  white-space: pre;
+  overflow-wrap: normal;
+  overflow-x: auto;
+  overflow-y: scroll;
+  tab-size: 2;
+  caret-color: var(--pink2);
+}
+
+.editor-textarea::selection {
+  background: rgba(212, 70, 123, 0.35);
+  color: #fff;
+}
+
+/* ── Panel Inferior: Consola Visual ────────────────────────── */
+#console-panel {
+  display: flex;
+  flex-direction: column;
+  height: 210px;
+  min-height: 120px;
+  max-height: 50vh;
+  background: var(--bg1);
+  flex-shrink: 0;
+  border-top: 1px solid var(--border2);
+}
+
+.console-header {
+  display: flex;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  height: 28px;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.console-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.console-tab {
+  font-size: 10px;
+  padding: 3px 10px;
+  cursor: pointer;
+  border-radius: 3px 3px 0 0;
+  color: var(--text2);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: all 0.15s;
+}
+
+.console-tab:hover {
+  color: var(--text);
+  background: var(--bg3);
+}
+
+.console-tab.active {
+  color: var(--pink2);
+  background: var(--bg1);
+  font-weight: 600;
+  border-bottom: 2px solid var(--pink);
+}
+
+.console-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.console-badge {
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.console-badge.badge-error {
+  background: var(--red-bg);
+  color: var(--red2);
+  border: 1px solid var(--red-dim);
+}
+
+.console-badge.badge-info {
+  background: rgba(56, 184, 200, 0.12);
+  color: var(--cyan);
+}
+
+/* Contenido de la Consola */
+.console-body {
+  flex: 1;
+  min-height: 0;
+  padding: 8px 12px;
+  overflow-y: auto;
+  font-family: var(--font);
+  font-size: 11px;
+  line-height: 18px;
+  background: var(--bg0);
+}
+
+/* Tipos de mensajes en consola */
+.console-line {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  word-break: break-all;
+  padding: 1px 0;
+}
+
+.console-line .c-time {
+  color: var(--text3);
+  font-size: 9px;
+  min-width: 55px;
+  user-select: none;
+}
+
+.console-line .c-icon {
+  font-size: 10px;
+  user-select: none;
+}
+
+.console-line .c-msg {
+  flex: 1;
+}
+
+/* Estados temáticos para los mensajes */
+.console-line.c-info {
+  color: var(--text2);
+}
+.console-line.c-info .c-icon {
+  color: var(--cyan);
+}
+
+.console-line.c-success {
+  color: var(--green2);
+}
+.console-line.c-success .c-icon {
+  color: var(--green);
+}
+
+.console-line.c-warning {
+  color: var(--amber2);
+}
+.console-line.c-warning .c-icon {
+  color: var(--amber);
+}
+
+.console-line.c-error {
+  color: var(--red2);
+  background: var(--red-bg);
+  padding: 3px 6px;
+  border-radius: 3px;
+  border-left: 3px solid var(--red);
+}
+.console-line.c-error .c-icon {
+  color: var(--red2);
+  font-weight: bold;
+}

@@ -1,0 +1,202 @@
+/* ═══════════════════════════════════════════════════════════════
+   LAYOUT.CSS — Estructura Principal (Grid + Flex)
+   ═══════════════════════════════════════════════════════════════
+   
+   Este archivo controla CÓMO se posicionan los paneles:
+   - Body: flexbox vertical (header → main → statusbar)
+   - Main: CSS Grid de 3 columnas (controles | dMem | iMem)
+   
+   CSS Grid es como una tabla invisible que divide la pantalla
+   en columnas. Flexbox apila elementos en fila o columna.
+   Aquí usamos AMBOS: Grid para el layout general,
+   Flex para alinear elementos dentro de cada panel.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Reset Global ──────────────────────────────────────────── 
+   box-sizing: border-box → los paddings NO agrandan el elemento.
+   Sin esto, un div de 100px + 10px padding = 120px (sorpresa!).
+   Con border-box, siempre mide lo que dijiste. */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Body ──────────────────────────────────────────────────── 
+   flex-direction: column → apila header, main, statusbar
+   verticalmente. overflow:hidden → nada se sale de la pantalla. */
+body {
+  background: var(--bg0);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12px;
+  height: 100vh;          /* vh = viewport height (toda la pantalla) */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Header ────────────────────────────────────────────────── 
+   Barra superior con logo, nombre de archivo y botones.
+   flex-shrink: 0 → nunca se encoge aunque el espacio sea poco.
+   gap: 10px → espacio ENTRE hijos (mejor que margins individuales). */
+#header {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border2);
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  min-height: 40px;
+}
+
+/* Logo del IDE con efecto de color */
+#logo {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pink);        /* ← Acento rosa como color marca */
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  margin-right: 6px;
+  transition: color 0.2s;
+}
+#logo:hover {
+  color: var(--pink2);
+}
+#logo span {
+  color: var(--text3);
+}
+
+/* Nombre del archivo cargado */
+#file-name {
+  color: var(--text2);
+  font-size: 11px;
+  flex: 1;                   /* ← Ocupa todo el espacio sobrante */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;   /* ← Si no cabe, muestra "..." */
+  min-width: 0;
+}
+
+/* ── Paste Section ─────────────────────────────────────────── 
+   Panel colapsable para pegar código TM directamente. 
+   Se muestra/oculta con la clase .visible */
+#paste-wrap {
+  background: var(--bg1);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 12px;
+  flex-shrink: 0;
+  display: none;
+}
+#paste-wrap.visible {
+  display: block;
+}
+
+#paste-ta {
+  width: 100%;
+  height: 110px;
+  background: var(--bg0);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 8px;
+  resize: vertical;
+  outline: none;
+  border-radius: 3px;
+  transition: border-color 0.2s;
+}
+#paste-ta:focus {
+  border-color: var(--pink-dim);
+}
+
+#paste-footer {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  align-items: center;
+}
+#paste-err {
+  color: var(--red);
+  font-size: 10px;
+}
+
+/* ── Main Layout: Split Screen (Editor + Consola a la izquierda, Simulador TM a la derecha) ── 
+   grid-template-columns: 
+   - 1fr (Mitad izquierda): Editor de código Tiny++ + Consola inferior de compilación
+   - 1.1fr o dividido en columnas (Mitad derecha): TM Simulator (Controles/Registros, dMem, iMem)
+*/
+#main {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  flex: 1;                   /* ← Ocupa todo el espacio vertical restante */
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Contenedor del lado izquierdo: Editor arriba + Consola abajo */
+#left-workspace {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-right: 1px solid var(--border2);
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Contenedor del lado derecho: Simulador Tiny Machine (3 sub-columnas) */
+#tm-workspace {
+  display: grid;
+  grid-template-columns: 200px 1fr 1fr;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Cada columna es un flex vertical para apilar sus secciones */
+.col {
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+.col:last-child {
+  border-right: none;
+}
+
+/* Título de sección reutilizable (REGISTERS, I/O LOG, etc.) */
+.sec-title {
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+  padding: 4px 10px;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--pink);         /* ← Acento rosa en títulos */
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+/* ── Status Bar (pie de página) ────────────────────────────── 
+   Inspirado en la barra inferior de VS Code.
+   Muestra estado, PC actual, y watchpoint activo. */
+#statusbar {
+  background: var(--pink-dim);   /* ← Fondo rosa oscuro como VS Code usa azul */
+  border-top: 1px solid var(--pink-dim);
+  padding: 3px 12px;
+  font-size: 10px;
+  color: #e0d0d8;
+  flex-shrink: 0;
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+#sb-status {
+  color: #fff;
+  font-weight: 500;
+}
+#sb-pc {
+  color: var(--green2);
+}

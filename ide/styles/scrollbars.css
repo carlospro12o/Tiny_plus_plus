@@ -1,0 +1,33 @@
+/* ═══════════════════════════════════════════════════════════════
+   SCROLLBARS.CSS — Scrollbars personalizados estilo VS Code
+   ═══════════════════════════════════════════════════════════════
+   
+   Nota: Estos selectores (::-webkit-scrollbar) solo funcionan
+   en navegadores basados en Chromium (Chrome, Edge, Brave).
+   Firefox usa scrollbar-width/scrollbar-color (añadidos abajo).
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Chromium / WebKit ──────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg5);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text3);
+}
+
+/* ── Firefox ────────────────────────────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg5) var(--bg1);
+}

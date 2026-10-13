@@ -1,0 +1,478 @@
+/* ═══════════════════════════════════════════════════════════════
+   COMPONENTS.CSS — Componentes Reutilizables
+   ═══════════════════════════════════════════════════════════════
+   
+   Aquí viven los estilos de CADA componente visual individual:
+   botones, inputs, tabs, tablas, registros, etc.
+   
+   ¿Por qué separar componentes del layout?
+   → El layout dice DÓNDE va cada cosa.
+   → Los componentes dicen CÓMO se ve cada cosa.
+   Así puedes mover un botón a otro panel sin romper su estilo.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════════════════════════
+   BOTONES (.btn)
+   
+   Un solo estilo base + variantes con clases modificadoras:
+   .btn       → botón neutral (gris)
+   .btn.go    → botón de acción positiva (verde)
+   .btn.warn  → botón de advertencia (ámbar)
+   .btn.stop  → botón de parar (rojo)
+   
+   Esto es el patrón BEM simplificado: componente + modificador.
+   En vez de crear 4 botones distintos, tenemos 1 base + clases.
+   ══════════════════════════════════════════════════════════════ */
+.btn {
+  background: var(--bg4);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 4px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  border-radius: 3px;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s;
+  line-height: 1.4;
+}
+.btn:hover:not(:disabled) {
+  background: var(--bg5);
+  color: var(--pink2);
+  border-color: var(--text3);
+  transform: translateY(-1px);    /* ← Micro-animación: sube 1px al hover */
+}
+.btn:active:not(:disabled) {
+  transform: translateY(0);       /* ← Baja al hacer click */
+}
+
+/* Variante: Acción positiva (ejecutar, cargar) */
+.btn.go {
+  color: var(--green);
+  border-color: var(--green-dim);
+}
+.btn.go:hover:not(:disabled) {
+  background: var(--green-bg);
+  border-color: var(--green);
+  color: var(--green2);
+}
+
+/* Variante: Advertencia (run completo) */
+.btn.warn {
+  color: var(--amber);
+  border-color: var(--amber-dim);
+}
+.btn.warn:hover:not(:disabled) {
+  background: var(--amber-bg);
+  border-color: var(--amber);
+  color: var(--amber2);
+}
+
+/* Variante: Parar / peligro */
+.btn.stop {
+  color: var(--red);
+  border-color: var(--red-dim);
+}
+.btn.stop:hover:not(:disabled) {
+  background: var(--red-bg);
+  border-color: var(--red);
+  color: var(--red2);
+}
+
+/* Estado deshabilitado */
+.btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CONTROLES DE EJECUCIÓN (#ctrl-sec)
+   Panel con Step, Step×N, Run, Stop, Reset
+   ══════════════════════════════════════════════════════════════ */
+#ctrl-sec {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 10px;
+  flex-shrink: 0;
+}
+#step-status {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: baseline;
+}
+#step-count {
+  font-size: 11px;
+  color: var(--text2);
+}
+#step-result {
+  font-size: 11px;
+  color: var(--pink);          /* ← Rosa para el estado actual */
+  font-weight: 500;
+}
+
+/* Fila de controles (flex horizontal) */
+.ctrl-row {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 6px;
+  align-items: center;
+}
+
+/* Input numérico pequeño (para N en "Step×N") */
+.num-in {
+  background: var(--bg0);
+  border: 1px solid var(--border2);
+  color: var(--amber);
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 4px 6px;
+  width: 52px;
+  text-align: right;
+  outline: none;
+  border-radius: 3px;
+  transition: border-color 0.2s;
+}
+.num-in:focus {
+  border-color: var(--pink-dim);
+}
+
+.label-sm {
+  font-size: 10px;
+  color: var(--text3);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   REGISTROS (#reg-sec)
+   Grid 2×4 mostrando r0-r6 y PC
+   ══════════════════════════════════════════════════════════════ */
+#reg-sec {
+  background: var(--bg1);
+  border-bottom: 1px solid var(--border);
+  padding: 6px 8px 8px;
+  flex-shrink: 0;
+}
+.reg-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;  /* ← 2 columnas iguales */
+  gap: 3px;
+}
+.reg-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  background: var(--bg3);
+  border: 1px solid transparent;
+  border-radius: 2px;
+  transition: background 0.2s, border-color 0.2s;
+}
+/* Clase .chg se aplica dinámicamente cuando un registro CAMBIÓ */
+.reg-row.chg {
+  background: var(--chg-bg);
+  border-color: var(--amber-dim);
+}
+.reg-lbl {
+  color: var(--text3);
+  font-size: 10px;
+  width: 24px;
+}
+/* El PC tiene color especial para destacar */
+.reg-lbl.sp {
+  color: var(--pink);
+}
+.reg-val {
+  color: var(--amber);
+  font-weight: 500;
+  flex: 1;
+  text-align: right;
+  font-size: 11px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   I/O LOG (#io-sec)
+   Historial de entradas/salidas del programa
+   ══════════════════════════════════════════════════════════════ */
+#io-sec {
+  flex: 1;                   /* ← Ocupa el espacio restante de la columna */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+  min-height: 60px;
+}
+#io-log {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px;
+}
+.io-e {
+  padding: 1px 5px;
+  font-size: 11px;
+  line-height: 1.5;
+  border-radius: 2px;
+}
+/* Colores semánticos: cada tipo de evento tiene su color */
+.io-in   { color: var(--cyan); }     /* Entrada del usuario */
+.io-out  { color: var(--amber); }    /* Salida del programa */
+.io-halt { color: var(--red); }      /* Programa terminó */
+.io-err  { color: var(--red); font-weight: 500; }
+.io-info { color: var(--text3); }
+
+/* Fila de input (aparece cuando el programa pide IN) */
+#in-row {
+  display: none;
+  gap: 5px;
+  padding: 6px 8px;
+  align-items: center;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  background: rgba(212, 70, 123, 0.06); /* ← Toque rosa sutil */
+}
+#in-prompt {
+  color: var(--green);
+  font-size: 10px;
+  white-space: nowrap;
+}
+#in-val {
+  flex: 1;
+  background: var(--bg0);
+  border: 1px solid var(--green-dim);
+  color: var(--green);
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 4px 6px;
+  outline: none;
+  min-width: 0;
+  border-radius: 3px;
+  transition: border-color 0.2s;
+}
+#in-val:focus {
+  border-color: var(--green);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   WATCHPOINTS (#watch-sec)
+   Configuración de punto de vigilancia en memoria
+   ══════════════════════════════════════════════════════════════ */
+#watch-sec {
+  background: var(--bg2);
+  padding: 8px 10px;
+  flex-shrink: 0;
+}
+.wrow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 5px;
+  font-size: 10px;
+  color: var(--text2);
+  flex-wrap: wrap;
+}
+.wrow:last-child {
+  margin-bottom: 0;
+}
+.w-in {
+  background: var(--bg0);
+  border: 1px solid var(--border2);
+  color: var(--red);
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 3px 5px;
+  width: 58px;
+  outline: none;
+  text-align: right;
+  border-radius: 3px;
+  transition: border-color 0.2s;
+}
+.w-in:focus {
+  border-color: var(--red-dim);
+}
+input[type=checkbox] {
+  accent-color: var(--pink);   /* ← Checkbox rosa */
+  cursor: pointer;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   DATA MEMORY — TABS + CONFIGURACIÓN + TABLA
+   ══════════════════════════════════════════════════════════════ */
+
+/* Barra de tabs (Low ↑ / High ↓) */
+.tab-bar {
+  display: flex;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.tab {
+  padding: 6px 14px;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text3);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  user-select: none;
+}
+/* Tab activo usa rosa como indicador */
+.tab.active {
+  color: var(--pink);
+  border-bottom-color: var(--pink);
+  background: var(--bg3);
+}
+.tab:hover:not(.active) {
+  color: var(--text2);
+}
+
+/* Config row (start addr, count, apply) */
+#dmem-cfg {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 5px 8px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.cfg-lbl {
+  font-size: 9px;
+  color: var(--text3);
+  white-space: nowrap;
+}
+.rng-in {
+  background: var(--bg0);
+  border: 1px solid var(--border2);
+  color: var(--cyan);
+  font-family: var(--font);
+  font-size: 10px;
+  padding: 3px 5px;
+  width: 52px;
+  text-align: right;
+  outline: none;
+  border-radius: 3px;
+  transition: border-color 0.2s;
+}
+.rng-in:focus {
+  border-color: var(--cyan-dim);
+}
+#dmem-info {
+  font-size: 9px;
+  color: var(--text3);
+  margin-left: auto;
+}
+#dmem-scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TABLAS DE MEMORIA (dMem e iMem)
+   
+   Ambas tablas usan la misma estructura base (.mtbl / .itbl)
+   pero con clases específicas para celdas.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Tabla de Data Memory ──────────────────────────────────── */
+table.mtbl {
+  width: 100%;
+  border-collapse: collapse;
+}
+table.mtbl thead {
+  position: sticky;          /* ← El header se "pega" al hacer scroll */
+  top: 0;
+  background: var(--bg3);
+  z-index: 2;
+}
+table.mtbl th {
+  padding: 4px 8px;
+  text-align: left;
+  font-size: 9px;
+  color: var(--text3);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid var(--border);
+}
+table.mtbl td {
+  padding: 2px 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+}
+.d-addr { color: var(--text3); width: 46px; }
+.d-val  { text-align: right; width: 58px; }
+.d-val.nz  { color: var(--amber); }      /* nz = non-zero */
+.d-val.chg { color: var(--green2) !important; background: var(--chg-bg); }
+.d-note { color: var(--text3); font-size: 9px; font-style: italic; }
+tr.d-watch { background: var(--bp-bg); }  /* Fila con watchpoint */
+tr.d-fp    { background: rgba(56, 136, 208, 0.06); } /* Frame pointer */
+
+/* ── Tabla de Instruction Memory ───────────────────────────── */
+#imem-scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+table.itbl {
+  width: 100%;
+  border-collapse: collapse;
+}
+table.itbl thead {
+  position: sticky;
+  top: 0;
+  background: var(--bg3);
+  z-index: 2;
+}
+table.itbl th {
+  padding: 4px 6px;
+  text-align: left;
+  font-size: 9px;
+  color: var(--text3);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid var(--border);
+}
+.i-row {
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.08s;
+  border-left: 3px solid transparent;  /* ← Indicador lateral */
+}
+.i-row:hover {
+  background: var(--bg4);
+}
+/* PC actual: resaltado verde con borde lateral */
+.i-row.pc {
+  background: var(--pc-bg) !important;
+  border-left-color: var(--pc-border);
+}
+/* Breakpoint: resaltado rojo */
+.i-row.bp {
+  background: var(--bp-bg);
+  border-left-color: var(--bp-border);
+}
+/* Ambos: PC en un breakpoint → ámbar */
+.i-row.pc.bp {
+  background: rgba(224, 160, 32, 0.10) !important;
+  border-left-color: var(--amber);
+}
+.i-row td {
+  padding: 2px 6px;
+  font-size: 11px;
+}
+.i-marker  { width: 16px; text-align: center; font-size: 10px; padding-left: 2px !important; }
+.i-loc     { color: var(--text3); width: 30px; }
+.i-op      { color: var(--cyan); font-weight: 500; width: 36px; }
+.i-args    { color: var(--text2); width: 90px; font-size: 10px; }
+.i-comment { color: var(--text3); font-style: italic; font-size: 10px; }
+
+/* ══════════════════════════════════════════════════════════════
+   MENSAJE VACÍO (cuando no hay programa cargado)
+   ══════════════════════════════════════════════════════════════ */
+.empty-msg {
+  padding: 30px 16px;
+  color: var(--text3);
+  font-size: 11px;
+  line-height: 2;
+}
