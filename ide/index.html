@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="styles/variables.css">
   <link rel="stylesheet" href="styles/layout.css">
   <link rel="stylesheet" href="styles/components.css">
+  <link rel="stylesheet" href="styles/editor.css">
   <link rel="stylesheet" href="styles/scrollbars.css">
 </head>
 <body>
@@ -56,8 +57,74 @@
      ═══════════════════════════════════════════════════════════════ -->
 <div id="main">
 
-  <!-- ══ COLUMNA IZQUIERDA ══════════════════════════════════════ -->
-  <div class="col">
+  <!-- ═════════════════════════════════════════════════════════════
+       ESPACIO DE TRABAJO IZQUIERDO: Editor Tiny++ y Consola Visual
+       ═════════════════════════════════════════════════════════════ -->
+  <div id="left-workspace">
+    
+    <!-- ── Panel Superior: Editor de Código con Numeración ── -->
+    <div id="editor-panel">
+      <div class="editor-tabs">
+        <div class="editor-tab-group">
+          <div class="editor-tab">
+            <span class="file-icon">📄</span>
+            <span id="editor-active-file">factorial.tny</span>
+          </div>
+        </div>
+        <div class="editor-actions">
+          <button class="btn" id="btn-new-code" title="Nuevo archivo de código" onclick="Editor.setSource('','nuevo.tny')">+ Nuevo</button>
+          <label class="btn go" style="cursor:pointer;padding:2px 8px;font-size:10px;">
+            Abrir .tny
+            <input type="file" id="tny-file-in" accept=".tny,.txt" style="display:none" onchange="
+              if(this.files && this.files[0]) {
+                const f = this.files[0];
+                const r = new FileReader();
+                r.onload = e => {
+                  Editor.setSource(e.target.result, f.name);
+                  IdeConsole.info('Archivo Tiny++ cargado en editor: ' + f.name);
+                };
+                r.readAsText(f);
+              }
+            ">
+          </label>
+        </div>
+      </div>
+
+      <div class="editor-body">
+        <!-- Numeración de líneas sincronizada con scroll -->
+        <div class="editor-gutter" id="editor-gutter"></div>
+        <!-- Área de escritura de código fuente -->
+        <textarea class="editor-textarea" id="code-editor" spellcheck="false" placeholder="Escribe aquí tu código Tiny++..."></textarea>
+      </div>
+    </div>
+
+    <!-- ── Panel Inferior: Consola Visual Multicanal ── -->
+    <div id="console-panel">
+      <div class="console-header">
+        <div class="console-tabs">
+          <div class="console-tab active" data-tab="all" onclick="IdeConsole.setTab('all')">Consola</div>
+          <div class="console-tab" data-tab="output" onclick="IdeConsole.setTab('output')">Salida</div>
+          <div class="console-tab" data-tab="errors" onclick="IdeConsole.setTab('errors')">
+            Problemas <span class="console-badge badge-error" id="console-error-count" style="display:none">0</span>
+          </div>
+        </div>
+        <div class="console-actions">
+          <button class="btn" style="font-size:9px;padding:1px 6px;" onclick="IdeConsole.clear()" title="Limpiar mensajes de consola">Limpiar</button>
+        </div>
+      </div>
+      <!-- Listado de mensajes / logs / errores con colores -->
+      <div class="console-body" id="console-body"></div>
+    </div>
+
+  </div>
+
+  <!-- ═════════════════════════════════════════════════════════════
+       ESPACIO DE TRABAJO DERECHO: Simulador de la Tiny Machine (TM)
+       ═════════════════════════════════════════════════════════════ -->
+  <div id="tm-workspace">
+
+    <!-- ══ COLUMNA IZQUIERDA TM: Controles, Registros, I/O ═══════ -->
+    <div class="col">
 
     <!-- Controles de ejecución -->
     <div id="ctrl-sec">
@@ -151,7 +218,9 @@
     </div>
   </div>
 
-</div>
+  </div> <!-- Fin #tm-workspace -->
+
+</div> <!-- Fin #main -->
 
 <!-- ═══════════════════════════════════════════════════════════════
      STATUS BAR — Barra inferior estilo VS Code
@@ -167,13 +236,12 @@
 <!-- ═══════════════════════════════════════════════════════════════
      JAVASCRIPT
      
-     Orden de carga IMPORTA:
-     1. tm-engine.js PRIMERO (define variables globales y funciones)
-     2. tm-ui.js DESPUÉS (usa esas variables y funciones)
-     
-     Esto es porque usamos variables globales (var/let/const sin
-     módulos ES). En el futuro podríamos migrar a ES Modules.
+     Orden de carga:
+     1. editor.js (Editor de texto Tiny++ y Consola Visual)
+     2. tm-engine.js (Motor de simulación de la Tiny Machine)
+     3. tm-ui.js (Interfaz de controles, tablas y listeners del simulador)
      ═══════════════════════════════════════════════════════════════ -->
+<script src="js/editor.js"></script>
 <script src="js/tm-engine.js"></script>
 <script src="js/tm-ui.js"></script>
 

@@ -122,19 +122,36 @@ body {
   font-size: 10px;
 }
 
-/* ── Main Grid (3 columnas) ────────────────────────────────── 
-   grid-template-columns define 3 columnas:
-   - 220px fija → panel izquierdo (controles, registros, IO)
-   - 1fr flexible → panel central (Data Memory)
-   - 380px fija → panel derecho (Instruction Memory)
-   
-   "fr" = fracción del espacio sobrante. */
+/* ── Main Layout: Split Screen (Editor + Consola a la izquierda, Simulador TM a la derecha) ── 
+   grid-template-columns: 
+   - 1fr (Mitad izquierda): Editor de código Tiny++ + Consola inferior de compilación
+   - 1.1fr o dividido en columnas (Mitad derecha): TM Simulator (Controles/Registros, dMem, iMem)
+*/
 #main {
   display: grid;
-  grid-template-columns: 220px 1fr 380px;
+  grid-template-columns: 1fr 1.15fr;
   flex: 1;                   /* ← Ocupa todo el espacio vertical restante */
   overflow: hidden;
   min-height: 0;
+}
+
+/* Contenedor del lado izquierdo: Editor arriba + Consola abajo */
+#left-workspace {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-right: 1px solid var(--border2);
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Contenedor del lado derecho: Simulador Tiny Machine (3 sub-columnas) */
+#tm-workspace {
+  display: grid;
+  grid-template-columns: 200px 1fr 1fr;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 /* Cada columna es un flex vertical para apilar sus secciones */

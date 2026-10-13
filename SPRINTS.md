@@ -6,9 +6,9 @@
 - [x] **Tarea 1.3:** Aplicar un diseño visual moderno, limpio y profesional (Dark Mode estilo VS Code) manteniendo intacta toda la lógica original de la Tiny Machine que está por debajo.
 
 ## Sprint 2: Editor de Código y Consola Visual
-- [ ] **Tarea 2.1:** Integrar el área de texto del editor de código en la nueva estructura visual.
-- [ ] **Tarea 2.2:** Añadir numeración de líneas y resaltado de sintaxis básico para Tiny++.
-- [ ] **Tarea 2.3:** Crear el panel inferior de consola para mostrar los errores devueltos por el compilador de Java.
+- [x] **Tarea 2.1:** Integrar el área de texto del editor de código Tiny++ en la nueva estructura visual modular (`ide/`).
+- [x] **Tarea 2.2:** Añadir numeración de líneas sincronizada con scroll y soporte de indentación para Tiny++.
+- [x] **Tarea 2.3:** Crear el panel inferior de consola visual con tabs (Consola, Salida, Problemas) y formato para mensajes y errores del compilador Java.
 
 ## Sprint 3: Puente de Integración (Compilador <-> IDE)
 - [ ] **Tarea 3.1:** Diseñar e incorporar el botón de "Compilar y Cargar" en el header del IDE.
