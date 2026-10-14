@@ -79,6 +79,14 @@ public class ChequeadorSemantico {
                         p = p.getHermanoDerecha();
                     }
                     tablaSimbolos.getScopeGlobal().insertar(new RegistroSimbolo(nombre, sub.getTipoRetorno(), params, sub.getLinea(), 0));
+
+                    // Registrar InfoSubrutina para la generacion de codigo en la TM (Mision 4)
+                    InfoSubrutina info = new InfoSubrutina(nombre, sub.getTipoRetorno());
+                    for (RegistroSimbolo pr : params) {
+                        info.agregarParametro(pr.getIdentificador(), pr.getTipo());
+                    }
+                    tablaSimbolos.recolectarLocales(sub.getCuerpo(), info);
+                    tablaSimbolos.registrarSubrutina(info);
                 }
             }
             actual = actual.getHermanoDerecha();
@@ -94,6 +102,8 @@ public class ChequeadorSemantico {
                 verificarSubrutina((NodoSubrutina) nodo);
             } else if (nodo instanceof NodoAsignacion) {
                 verificarAsignacion((NodoAsignacion) nodo);
+            } else if (nodo instanceof NodoAsignacionArreglo) {
+                verificarAsignacionArreglo((NodoAsignacionArreglo) nodo);
             } else if (nodo instanceof NodoLeer) {
                 verificarLeer((NodoLeer) nodo);
             } else if (nodo instanceof NodoEscribir) {
@@ -109,6 +119,31 @@ public class ChequeadorSemantico {
             }
 
             nodo = nodo.getHermanoDerecha();
+        }
+    }
+
+    private void verificarAsignacionArreglo(NodoAsignacionArreglo asig) {
+        String id = asig.getIdentificador();
+        RegistroSimbolo simbolo = tablaSimbolos.buscar(id);
+
+        if (simbolo == null) {
+            agregarError(asig.getLinea(), "La variable '" + id + "' no ha sido declarada antes de su uso.");
+            return;
+        }
+
+        if (!simbolo.esArreglo()) {
+            agregarError(asig.getLinea(), "'" + id + "' no es un arreglo y no puede usarse con corchetes [].");
+            return;
+        }
+
+        String tipoExpresion = tipoDeExpresion(asig.getExpresion());
+        String tipoIndice = tipoDeExpresion(asig.getIndice());
+        if (!"int".equals(tipoIndice) && !"error".equals(tipoIndice)) {
+            agregarError(asig.getLinea(), "El indice del arreglo '" + id + "' debe ser de tipo 'int', pero se obtuvo '" + tipoIndice + "'.");
+        }
+
+        if (!"error".equals(tipoExpresion) && !simbolo.getTipoBase().equals(tipoExpresion)) {
+            agregarError(asig.getLinea(), "Tipos incompatibles en asignacion a '" + id + "[]'. Se esperaba '" + simbolo.getTipoBase() + "' pero se obtuvo '" + tipoExpresion + "'.");
         }
     }
 
@@ -336,6 +371,32 @@ public class ChequeadorSemantico {
             if (val.esCadena()) return "string";
             if (val.esBooleano()) return "bool";
             return "int";
+        }
+
+        if (nodo instanceof NodoBooleano) {
+            return "bool";
+        }
+
+        if (nodo instanceof NodoAccesoArreglo) {
+            NodoAccesoArreglo acc = (NodoAccesoArreglo) nodo;
+            String nombre = acc.getIdentificador();
+            RegistroSimbolo simbolo = tablaSimbolos.buscar(nombre);
+
+            if (simbolo == null) {
+                agregarError(acc.getLinea(), "La variable '" + nombre + "' no ha sido declarada.");
+                return "error";
+            }
+
+            if (!simbolo.esArreglo()) {
+                agregarError(acc.getLinea(), "'" + nombre + "' no es un arreglo.");
+                return "error";
+            }
+
+            String tipoIdx = tipoDeExpresion(acc.getIndice());
+            if (!"int".equals(tipoIdx) && !"error".equals(tipoIdx)) {
+                agregarError(acc.getLinea(), "El indice del arreglo '" + nombre + "' debe ser de tipo 'int', pero se obtuvo '" + tipoIdx + "'.");
+            }
+            return simbolo.getTipoBase();
         }
 
         if (nodo instanceof NodoIdentificador) {
