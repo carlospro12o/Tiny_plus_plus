@@ -136,16 +136,58 @@ function hideInput() {
 // ══════════════════════════════════════════════════════════════
 
 function loadProgram(text, name) {
-  const {errors}=parseProgram(text);
-  if (errors.length>0) {
-    document.getElementById('paste-err').textContent=errors.slice(0,3).join(' | ');
-    alert('Parse errors:\n'+errors.join('\n')); return false;
+  // Limpieza inteligente: si el texto proviene de la consola Java con AST/mensajes,
+  // extraemos automáticamente solo el bloque de instrucciones TM.
+  const cleanCode = (typeof CompilerBridge !== 'undefined' && CompilerBridge.extractTMCode)
+    ? CompilerBridge.extractTMCode(text)
+    : text;
+
+  if (!cleanCode || !cleanCode.trim()) {
+    if (typeof IdeConsole !== 'undefined') {
+      IdeConsole.error('[Puente TM] El archivo o texto proporcionado no contiene código válido.');
+      IdeConsole.setTab('errors');
+    }
+    return false;
   }
-  document.getElementById('paste-err').textContent='';
-  programLoaded=true;
+
+  const { errors, maxLoc } = parseProgram(cleanCode);
+
+  if (errors.length > 0) {
+    const errorListStr = errors.slice(0, 3).join(' | ');
+    const pasteErr = document.getElementById('paste-err');
+    if (pasteErr) pasteErr.textContent = errorListStr;
+
+    // Reportar detalladamente a la consola visual multicanal
+    if (typeof IdeConsole !== 'undefined') {
+      IdeConsole.error(`[Compilador TM] Error al procesar el código objeto (${errors.length} error${errors.length === 1 ? '' : 'es'} detectados):`);
+      errors.forEach(err => IdeConsole.error(`  ✖ ${err}`));
+      IdeConsole.setTab('errors'); // Cambiar automáticamente a la pestaña de errores
+    }
+
+    lastResult = 'PARSE_ERR';
+    updateUI();
+    return false;
+  }
+
+  const pasteErr = document.getElementById('paste-err');
+  if (pasteErr) pasteErr.textContent = '';
+
+  programLoaded = true;
   breakpoints.clear();
-  resetMachine();
-  document.getElementById('file-name').textContent=name||'pasted program';
+  resetMachine(); // dMem[0]=1023, reg=[0..0], PC=0, etc.
+
+  const progName = name || 'programa.tm';
+  const fileNameEl = document.getElementById('file-name');
+  if (fileNameEl) fileNameEl.textContent = progName;
+
+  // Retroalimentación en la consola de estado
+  if (typeof IdeConsole !== 'undefined') {
+    IdeConsole.success(`[Puente Compilador ↔ TM] Código "${progName}" inyectado exitosamente en la memoria.`);
+    IdeConsole.info(`[iMem] ${maxLoc + 1} instrucciones cargadas en memoria de instrucciones (loc: 0..${maxLoc}).`);
+    IdeConsole.info(`[dMem] Memoria de datos inicializada: dMem[0]=${DSIZE - 1} (puntero global gp).`);
+    IdeConsole.info(`[Registros] Todos los registros en 0. PC=0 listo para ejecutar.`);
+  }
+
   updateUI();
   return true;
 }
@@ -382,9 +424,341 @@ document.getElementById('w-val').addEventListener('input',e=>{ wVal=parseInt(e.t
 });
 
 // ══════════════════════════════════════════════════════════════
+// PUENTE DE INTEGRACIÓN COMPILADOR ↔ IDE (SPRINT 3: SCRUM-16)
+// ══════════════════════════════════════════════════════════════
+const CompilerBridge = {
+  serverUrl: 'http://localhost:3000',
+  isServerOnline: false,
+
+  /** Inicialización de eventos y verificaciones del puente */
+  init() {
+    // 1. Botón principal del Header: 'Compilar y Cargar'
+    const btnCompile = document.getElementById('btn-compile-load');
+    if (btnCompile) {
+      btnCompile.addEventListener('click', () => this.handleCompileAndLoad());
+    }
+
+    // 2. Controles para cerrar el Modal
+    const btnClose = document.getElementById('btn-modal-close');
+    const btnCancel = document.getElementById('btn-modal-cancel');
+    if (btnClose) btnClose.addEventListener('click', () => this.closeModal());
+    if (btnCancel) btnCancel.addEventListener('click', () => this.closeModal());
+
+    // Cerrar modal al hacer click fuera de la tarjeta
+    const modalOverlay = document.getElementById('compile-modal');
+    if (modalOverlay) {
+      modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) this.closeModal();
+      });
+    }
+
+    // 3. Cargar archivo .tm desde el modal
+    const modalFileIn = document.getElementById('modal-tm-file-in');
+    if (modalFileIn) {
+      modalFileIn.addEventListener('change', (e) => this.handleFileSelect(e));
+    }
+
+    // 4. Inyectar código pegado en el textarea del modal
+    const btnInject = document.getElementById('btn-modal-inject-paste');
+    if (btnInject) {
+      btnInject.addEventListener('click', () => this.handlePasteInject());
+    }
+
+    // 5. Limpiar textarea del modal
+    const btnClear = document.getElementById('btn-modal-clear-paste');
+    if (btnClear) {
+      btnClear.addEventListener('click', () => {
+        const ta = document.getElementById('modal-tm-paste');
+        if (ta) ta.value = '';
+      });
+    }
+
+    // 6. Copiar comando de terminal al portapapeles
+    const btnCopy = document.getElementById('btn-copy-cmd');
+    if (btnCopy) {
+      btnCopy.addEventListener('click', () => this.copyCommand());
+    }
+
+    // 7. Descargar código actual como archivo .tny
+    const btnDownload = document.getElementById('btn-download-tny');
+    if (btnDownload) {
+      btnDownload.addEventListener('click', () => this.downloadTny());
+    }
+
+    // Verificar en segundo plano si el servidor de compilación está activo
+    this.checkServerStatus();
+  },
+
+  /**
+   * Extrae el bloque de código objeto TM de un texto arbitrario.
+   * Soporta tanto archivos .tm directos como salidas completas de consola Java
+   * con delimitadores '------ CODIGO OBJETO ... ------'.
+   */
+  extractTMCode(rawText) {
+    if (!rawText) return '';
+    const startTag = '------ CODIGO OBJETO DEL LENGUAJE TINY++ GENERADO PARA LA TM ------';
+    const endTag = '------ FIN DEL CODIGO OBJETO DEL LENGUAJE TINY++ GENERADO PARA LA TM ------';
+
+    const startIdx = rawText.indexOf(startTag);
+    const endIdx = rawText.indexOf(endTag);
+
+    if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+      return rawText.slice(startIdx + startTag.length, endIdx).trim();
+    }
+    return rawText.trim();
+  },
+
+  /**
+   * Manejador al presionar el botón 'Compilar y Cargar'.
+   * 1. Toma el código fuente Tiny++ actual del Editor.
+   * 2. Intenta compilarlo llamando al servicio local en segundo plano.
+   * 3. Si el servidor responde, inyecta las instrucciones en iMem y reporta a la consola.
+   * 4. Si el servidor no está corriendo, abre el modal de integración asistida.
+   */
+  async handleCompileAndLoad() {
+    const btn = document.getElementById('btn-compile-load');
+    const originalHtml = btn ? btn.innerHTML : '';
+
+    const sourceCode = (typeof Editor !== 'undefined' && Editor.getSource) 
+      ? Editor.getSource() 
+      : '';
+    const activeFileName = (typeof Editor !== 'undefined' && Editor.currentFileName) 
+      ? Editor.currentFileName 
+      : 'programa.tny';
+
+    if (!sourceCode.trim()) {
+      if (typeof IdeConsole !== 'undefined') {
+        IdeConsole.warning('[Compilador] El editor está vacío. Escribe o abre un archivo Tiny++ antes de compilar.');
+      }
+      return;
+    }
+
+    // Estado visual de carga en el botón
+    if (btn) {
+      btn.classList.add('loading');
+      btn.innerHTML = '<span class="btn-compile-icon">⏳</span> Compilando...';
+    }
+
+    if (typeof IdeConsole !== 'undefined') {
+      IdeConsole.info(`[Compilador] Solicitando compilación para "${activeFileName}"...`);
+    }
+
+    try {
+      // Petición HTTP POST al servidor local de compilación (Node.js bridge)
+      const response = await fetch(`${this.serverUrl}/compile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: sourceCode, fileName: activeFileName }),
+        signal: AbortSignal.timeout(3000)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.tmCode) {
+          if (typeof IdeConsole !== 'undefined') {
+            IdeConsole.success('[Compilador] Compilación Java completada con éxito.');
+            if (data.log) IdeConsole.info(data.log);
+          }
+          const targetTmName = activeFileName.replace(/\.tny$/i, '') + '.tm';
+          loadProgram(data.tmCode, targetTmName);
+          this.isServerOnline = true;
+          this.updateServerStatusUI(true);
+          return;
+        } else {
+          // El compilador Java reportó errores (sintácticos, semánticos, etc.)
+          if (typeof IdeConsole !== 'undefined') {
+            IdeConsole.error('[Compilador] Errores detectados durante la compilación de Tiny++:');
+            if (data.errors) IdeConsole.error(data.errors);
+            if (data.log) IdeConsole.info(data.log);
+            IdeConsole.setTab('errors');
+          }
+          return;
+        }
+      }
+    } catch (err) {
+      // Si el servidor local no está ejecutándose o no responde
+      this.isServerOnline = false;
+      this.updateServerStatusUI(false);
+      if (typeof IdeConsole !== 'undefined') {
+        IdeConsole.info('[Puente ↔ IDE] Servidor de compilación no detectado en localhost:3000.');
+        IdeConsole.info('[Puente ↔ IDE] Abriendo asistente de integración para cargar .tm o pegar salida...');
+      }
+      // Abrir modal de integración
+      this.openModal();
+    } finally {
+      if (btn) {
+        btn.classList.remove('loading');
+        btn.innerHTML = originalHtml;
+      }
+    }
+  },
+
+  /**
+   * Abre el modal de integración del compilador
+   */
+  openModal() {
+    const modal = document.getElementById('compile-modal');
+    if (modal) {
+      modal.style.display = 'flex';
+      const cmdEl = document.getElementById('modal-cmd-text');
+      const curFile = (typeof Editor !== 'undefined' && Editor.currentFileName) 
+        ? Editor.currentFileName 
+        : 'factorial.tny';
+      if (cmdEl) {
+        cmdEl.textContent = `ejecutar.bat ${curFile.includes('/') || curFile.includes('\\') ? curFile : 'ejemplos\\' + curFile}`;
+      }
+      this.checkServerStatus();
+    }
+  },
+
+  /**
+   * Cierra el modal de integración
+   */
+  closeModal() {
+    const modal = document.getElementById('compile-modal');
+    if (modal) modal.style.display = 'none';
+  },
+
+  /**
+   * Manejador de selección de archivo .tm desde el modal
+   */
+  handleFileSelect(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    const label = document.getElementById('modal-selected-file');
+    if (label) label.textContent = file.name;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const content = ev.target.result;
+      if (loadProgram(content, file.name)) {
+        this.closeModal();
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  },
+
+  /**
+   * Inyecta el contenido pegado en el textarea del modal
+   */
+  handlePasteInject() {
+    const ta = document.getElementById('modal-tm-paste');
+    if (!ta || !ta.value.trim()) {
+      if (typeof IdeConsole !== 'undefined') {
+        IdeConsole.warning('[Puente TM] El área de texto está vacía. Pega instrucciones .tm o la salida de Java.');
+      }
+      return;
+    }
+
+    const clean = this.extractTMCode(ta.value);
+    const activeFile = (typeof Editor !== 'undefined' && Editor.currentFileName)
+      ? Editor.currentFileName.replace(/\.tny$/i, '') + '.tm'
+      : 'programa.tm';
+
+    if (loadProgram(clean, activeFile)) {
+      this.closeModal();
+      ta.value = '';
+    }
+  },
+
+  /**
+   * Copia el comando CLI al portapapeles
+   */
+  copyCommand() {
+    const cmdEl = document.getElementById('modal-cmd-text');
+    if (!cmdEl) return;
+    navigator.clipboard.writeText(cmdEl.textContent).then(() => {
+      if (typeof IdeConsole !== 'undefined') {
+        IdeConsole.info(`[Portapapeles] Comando copiado: ${cmdEl.textContent}`);
+      }
+      const btn = document.getElementById('btn-copy-cmd');
+      if (btn) {
+        const orig = btn.textContent;
+        btn.textContent = '✔ Copiado';
+        setTimeout(() => { btn.textContent = orig; }, 1500);
+      }
+    }).catch(() => {
+      alert('Comando: ' + cmdEl.textContent);
+    });
+  },
+
+  /**
+   * Descarga el código Tiny++ actual como archivo físico .tny
+   */
+  downloadTny() {
+    const code = (typeof Editor !== 'undefined' && Editor.getSource) ? Editor.getSource() : '';
+    const name = (typeof Editor !== 'undefined' && Editor.currentFileName) 
+      ? Editor.currentFileName 
+      : 'programa.tny';
+
+    const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    if (typeof IdeConsole !== 'undefined') {
+      IdeConsole.success(`[Descarga] Archivo fuente guardado: ${name}`);
+    }
+  },
+
+  /**
+   * Verifica la conectividad con el servidor local de compilación
+   */
+  async checkServerStatus() {
+    this.updateServerStatusUI('checking');
+    try {
+      const res = await fetch(`${this.serverUrl}/status`, {
+        signal: AbortSignal.timeout(1200)
+      });
+      if (res.ok) {
+        this.isServerOnline = true;
+        this.updateServerStatusUI(true);
+      } else {
+        this.isServerOnline = false;
+        this.updateServerStatusUI(false);
+      }
+    } catch {
+      this.isServerOnline = false;
+      this.updateServerStatusUI(false);
+    }
+  },
+
+  /**
+   * Actualiza los indicadores visuales de estado del servidor
+   */
+  updateServerStatusUI(status) {
+    const dot = document.getElementById('server-status-dot');
+    const text = document.getElementById('server-status-text');
+    if (!dot || !text) return;
+
+    if (status === 'checking') {
+      dot.className = 'status-dot checking';
+      text.textContent = 'Verificando servidor de compilación (localhost:3000)...';
+    } else if (status === true) {
+      dot.className = 'status-dot online';
+      text.textContent = '🟢 Servidor local conectado en localhost:3000. Compilación 1-clic activa.';
+    } else {
+      dot.className = 'status-dot offline';
+      text.textContent = '⚪ Servidor local desconectado. Modo manual activo (carga o pega tu archivo .tm).';
+    }
+  }
+};
+
+// ══════════════════════════════════════════════════════════════
 // INICIALIZACIÓN
 // Al cargar la página, reseteamos y renderizamos el estado vacío
 // ══════════════════════════════════════════════════════════════
 resetMachine();
 renderRegisters();
 renderDmem();
+
+// Inicializar puente de integración compilador ↔ IDE
+CompilerBridge.init();
+

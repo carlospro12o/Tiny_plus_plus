@@ -26,8 +26,14 @@
 <div id="header">
   <div id="logo">▸ Tiny<span>++</span></div>
   <span id="file-name">no program loaded</span>
+
+  <!-- Botón Compilar y Cargar (Sprint 3: SCRUM-16) -->
+  <button class="btn btn-compile" id="btn-compile-load" title="Compilar código Tiny++ y cargar en la Tiny Machine">
+    <span class="btn-compile-icon">⚡</span> Compilar y Cargar
+  </button>
+
   <button class="btn" id="btn-paste-toggle">paste ▾</button>
-  <label class="btn go" style="cursor:pointer">
+  <label class="btn go" style="cursor:pointer" title="Cargar archivo .tm desde disco">
     load .tm
     <input type="file" id="file-in" accept=".tm,.txt" style="display:none">
   </label>
@@ -231,6 +237,70 @@
   <span id="sb-status">load a program to begin</span>
   <span id="sb-pc">PC: —</span>
   <span id="sb-watch"></span>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     MODAL DE INTEGRACIÓN — Puente Compilador ↔ Tiny Machine
+     (Sprint 3: SCRUM-16)
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="compile-modal" class="modal-overlay" style="display:none">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title">
+        <span class="modal-icon">⚡</span> Puente de Integración Compilador ↔ TM
+      </div>
+      <button class="modal-close" id="btn-modal-close" title="Cerrar">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Barra de estado del servidor en segundo plano -->
+      <div class="modal-status-bar" id="modal-server-status">
+        <span class="status-dot offline" id="server-status-dot"></span>
+        <span id="server-status-text">Verificando conexión con servidor de compilación...</span>
+      </div>
+
+      <!-- Opción A: Cargar archivo .tm compilado -->
+      <div class="modal-section">
+        <div class="modal-section-title">Opción A: Cargar archivo .tm compilado</div>
+        <p class="modal-desc">Selecciona el archivo <code>.tm</code> generado por el compilador Java para cargarlo directamente en la memoria:</p>
+        <div class="modal-actions-row">
+          <label class="btn go" style="cursor:pointer">
+            📂 Seleccionar archivo .tm
+            <input type="file" id="modal-tm-file-in" accept=".tm,.txt" style="display:none">
+          </label>
+          <span id="modal-selected-file" class="file-tag">Ningún archivo cargado</span>
+        </div>
+      </div>
+
+      <!-- Opción B: Pegar salida del compilador Java o instrucciones TM -->
+      <div class="modal-section">
+        <div class="modal-section-title">Opción B: Pegar salida de consola o código .tm</div>
+        <p class="modal-desc">Pega aquí el código <code>.tm</code> o la salida completa de <code>ejecutar.bat</code> (el sistema extraerá automáticamente las instrucciones):</p>
+        <textarea id="modal-tm-paste" class="modal-textarea" placeholder="Ej:&#10;0: LD 6,0(0) * load maxaddress&#10;1: ST 0,0(0) * clear location 0&#10;..."></textarea>
+        <div class="modal-actions-row" style="margin-top: 8px;">
+          <button class="btn go" id="btn-modal-inject-paste">📥 Inyectar en Memoria TM</button>
+          <button class="btn" id="btn-modal-clear-paste">Limpiar</button>
+        </div>
+      </div>
+
+      <!-- Opción C: Comandos rápidos para compilar por terminal -->
+      <div class="modal-section">
+        <div class="modal-section-title">💡 Comandos de Compilación (Terminal)</div>
+        <div class="modal-cmd-box">
+          <code id="modal-cmd-text">ejecutar.bat ejemplos\factorial.tny</code>
+          <button class="btn" id="btn-copy-cmd" title="Copiar comando">📋 Copiar</button>
+        </div>
+        <div style="margin-top: 8px; display: flex; gap: 8px;">
+          <button class="btn" id="btn-download-tny" title="Descargar código Tiny++ actual">💾 Guardar archivo .tny</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <span class="modal-footer-hint">Las instrucciones se validan y cargan en iMem reiniciando PC en 0.</span>
+      <button class="btn" id="btn-modal-cancel">Cerrar</button>
+    </div>
+  </div>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════
