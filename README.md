@@ -8,13 +8,13 @@ Compilador para el lenguaje de programación **Tiny++** desarrollado en Java uti
 
 El proyecto se encuentra dividido en las siguientes áreas de responsabilidad:
 
-### 👤 Módulo 1: Frontend y Verificador Semántico (Integrante 1)
+### 👤 Módulo 1: Frontend y Verificador Semántico (Jesús Chacón)
 - [x] Ampliación del analizador léxico (`lexico.flex`) con nuevos tokens: tipos (`int`, `bool`, `string`), subrutinas (`function`, `procedure`, `return`), delimitadores de arreglos (`[`, `]`, `,`), comparadores (`>`, `<=`, `>=`, `!=`), operadores booleanos (`and`, `or`, `not`) y literales de cadena.
 - [x] Ampliación de la gramática sintáctica (`sintactico.cup`) con construcción del AST enriquecido para Tiny++.
 - [x] Tabla de símbolos con árbol de ámbitos (`Scope.java`, `TablaSimbolos.java`), control de niveles jerárquicos y resolución de variables locales/globales.
 - [x] Verificador y Chequeador Semántico estricto (`ChequeadorSemantico.java`): validación estricta de tipos, verificación de declaraciones previas, detección de duplicados por ámbito, comprobación de condiciones booleanas en `if` y `repeat`, validación de índices de arreglos e invariantes de subrutinas (firmas, parámetros y retornos).
 
-### 👤 Módulo 2: Backend y Generación de Código TM (Integrante 2)
+### 👤 Módulo 2: Backend y Generación de Código TM (Carlos Ocáriz)
 - [x] **Misión 1 - Operadores Relacionales, Lógicos y Booleanos:**
   - Nuevos operadores en `tipoOp.java`: `>`, `<=`, `>=`, `!=`, `and`, `or`, `not`.
   - Nodo AST `NodoBooleano.java` para literales `true` (1) y `false` (0).
@@ -55,16 +55,15 @@ TinyPlus/
 │   │   ├── java-cup-11b-runtime.jar # Librería CUP Runtime
 │   │   └── jflex-full-1.8.2.jar     # Librería JFlex
 │   └── ve/edu/unet/
+│       ├── ChequeadorSemantico.java # Verificador semántico y análisis de tipos
+│       ├── Scope.java               # Árbol de ámbitos para variables y subrutinas
+│       ├── TablaSimbolos.java       # Gestión de la Tabla de Símbolos y memoria
+│       ├── RegistroSimbolo.java     # Registro de variables, arreglos y subrutinas
+│       ├── InfoSubrutina.java       # Metadata de marcos de pila para la TM
 │       ├── Generador.java           # Generador de código máquina TM
 │       ├── UtGen.java               # Utilidades de emisión de instrucciones TM
-│       ├── TablaSimbolos.java       # Gestión de la Tabla de Símbolos
 │       ├── TestBackend.java         # Suite de pruebas unitarias del backend
 │       └── nodosAST/                # Nodos del Árbol de Sintaxis Abstracta (AST)
-│           ├── NodoAccesoArreglo.java     # Lectura de arreglos A[exp]
-│           ├── NodoAsignacionArreglo.java # Escritura en arreglos A[exp] := exp
-│           ├── NodoBooleano.java          # Literales true / false
-│           ├── tipoOp.java                # Enumeración de operadores ampliados
-│           └── ...                        # Demás nodos de expresiones y sentencias
 ├── ejemplos/                        # Archivos de prueba en código Tiny++ (.tny)
 ├── compilar_gramatica.bat           # Script para regenerar Léxico.java y parser.java
 ├── compilar_codigo.bat              # Script para compilar las clases Java
@@ -103,10 +102,13 @@ compilar_codigo.bat
 
 ### 4. Ejecutar el Compilador sobre un archivo `.tny`
 ```cmd
-ejecutar.bat ejemplos\factorial.tny
+ejecutar.bat ejemplos\factorial_tiny_plus.tny
 ```
 
 ---
 
 ## 👨‍💻 Créditos
 Desarrollado para la materia de **Compiladores e Intérpretes** — **Universidad Nacional Experimental del Táchira (UNET)**.
+
+- **Jesús Chacón** — Módulo 1: Frontend, Léxico, Sintaxis, Ámbitos jerárquicos y Verificador Semántico estricto.
+- **Carlos Ocáriz** — Módulo 2: Backend, Generador TM, Operadores, Arreglos, Cadenas y Marcos de Pila.
