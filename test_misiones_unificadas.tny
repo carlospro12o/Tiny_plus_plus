@@ -1,0 +1,46 @@
+{ Test de integracion completa de todas las caracteristicas de Tiny++ }
+int x;
+int res;
+bool flag;
+string msg;
+int V[5];
+
+function int calcularDoble(int n)
+  int temp;
+  temp := n * 2;
+  return temp
+end;
+
+procedure mostrarValor(int val)
+  write val
+end;
+
+{ 1. Asignaciones simples y cadenas }
+msg := "Tiny++ Funciona!";
+write msg;
+write "Prueba de arreglos:";
+
+{ 2. Operaciones con arreglos }
+V[0] := 10;
+V[1] := 20;
+V[2] := V[0] + V[1];
+write V[2];
+
+{ 3. Expresiones relacionales y booleanas }
+flag := (V[2] >= 30) and (not false);
+if flag then
+  write "Condicion verdadera"
+else
+  write "Condicion falsa"
+end;
+
+{ 4. Llamada a funcion y procedimiento }
+res := calcularDoble(V[0]);
+mostrarValor(res);
+
+{ 5. Bucle repeat }
+x := 3;
+repeat
+  write x;
+  x := x - 1
+until x = 0
