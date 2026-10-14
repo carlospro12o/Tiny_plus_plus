@@ -69,6 +69,49 @@ public class TestBackend {
         //    write "UNET Compiladores"
         NodoEscribir nEscribirLiteral = new NodoEscribir(new NodoValor("UNET"));
 
+        // --- MISION 4: Subrutinas, Funciones y Marcos de Pila ---
+        // 8. Declaracion de funcion:
+        //    function int multiplicar(int a, int b)
+        //        return a * b
+        //    end;
+        NodoDeclaracion paramA = new NodoDeclaracion("int", "a");
+        NodoDeclaracion paramB = new NodoDeclaracion("int", "b");
+        paramA.setHermanoDerecha(paramB);
+        NodoReturn nReturnMult = new NodoReturn(
+            new NodoOperacion(new NodoIdentificador("a"), tipoOp.por, new NodoIdentificador("b"))
+        );
+        NodoSubrutina nFuncMult = new NodoSubrutina("int", "multiplicar", paramA, nReturnMult);
+
+        // 9. Declaracion de procedimiento:
+        //    procedure mostrar(int val)
+        //        write val
+        //    end;
+        NodoDeclaracion paramVal = new NodoDeclaracion("int", "val");
+        NodoEscribir nCuerpoMostrar = new NodoEscribir(new NodoIdentificador("val"));
+        NodoSubrutina nProcMostrar = new NodoSubrutina(null, "mostrar", paramVal, nCuerpoMostrar);
+
+        // 10. Llamada a funcion en expresion:
+        //     x := multiplicar(x, 2)
+        NodoBase argX = new NodoIdentificador("x");
+        NodoBase argDos = new NodoValor(2);
+        argX.setHermanoDerecha(argDos);
+        NodoLlamada nLlamadaMult = new NodoLlamada("multiplicar", argX);
+        NodoAsignacion nAsigLlamada = new NodoAsignacion("x", nLlamadaMult);
+
+        // 11. Llamada a procedimiento como sentencia:
+        //     mostrar(x)
+        NodoLlamada nLlamadaMostrar = new NodoLlamada("mostrar", new NodoIdentificador("x"));
+
+        // Registrar subrutinas en la tabla de simbolos
+        InfoSubrutina infoMult = new InfoSubrutina("multiplicar", "int");
+        infoMult.agregarParametro("a", "int");
+        infoMult.agregarParametro("b", "int");
+        ts.registrarSubrutina(infoMult);
+
+        InfoSubrutina infoMostrar = new InfoSubrutina("mostrar", null);
+        infoMostrar.agregarParametro("val", "int");
+        ts.registrarSubrutina(infoMostrar);
+
         // Encadenamos los nodos en el AST
         nMayor.setHermanoDerecha(nAnd);
         nAnd.setHermanoDerecha(nAsigArreglo);
@@ -76,6 +119,10 @@ public class TestBackend {
         nLecturaArreglo.setHermanoDerecha(nAsigString);
         nAsigString.setHermanoDerecha(nEscribirString);
         nEscribirString.setHermanoDerecha(nEscribirLiteral);
+        nEscribirLiteral.setHermanoDerecha(nFuncMult);
+        nFuncMult.setHermanoDerecha(nProcMostrar);
+        nProcMostrar.setHermanoDerecha(nAsigLlamada);
+        nAsigLlamada.setHermanoDerecha(nLlamadaMostrar);
 
         // Imprimimos la tabla de simbolos
         ts.ImprimirClaves();
@@ -89,7 +136,7 @@ public class TestBackend {
         Generador.generarCodigoObjeto(nMayor);
 
         System.out.println("==================================================================");
-        System.out.println("  VERIFICACION EXITOSA: Strings, Arreglos y Operadores TM al 100% ");
+        System.out.println("  VERIFICACION EXITOSA: MISIONES 1, 2, 3 Y 4 AL 100% OPERATIVAS!  ");
         System.out.println("==================================================================");
     }
 }

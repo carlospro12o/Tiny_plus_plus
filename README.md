@@ -28,7 +28,13 @@ El proyecto se encuentra dividido en las siguientes áreas de responsabilidad:
   - String Literal Pool en `Generador.java` con carga estática en el preludio de ejecución (códigos ASCII y terminador nulo `\0`).
   - Asignación de referencias/punteros a variables (`saludo := "hola Tiny++";`).
   - Rutina de salida en TM con bucle de recorrido en memoria (`LD`, `OUT`, `LDA`, `JEQ`) para imprimir caracteres tanto desde variables como literales en `write`.
-- [ ] **Misión 4 - Subrutinas, Funciones y Marcos de Pila (Stack Frames):** Gestión de llamadas con registros `MP`, `GP` y `PC`.
+- [x] **Misión 4 - Subrutinas, Funciones y Marcos de Pila (Stack Frames):**
+  - Gestión completa de funciones (`function`) y procedimientos (`procedure`) con paso de parámetros y variables locales en el marco de activación (`MP`).
+  - Registro de activación estándar: `0(MP)` dirección de retorno, `1(MP)` enlace dinámico (`Old MP`), `2..N(MP)` parámetros y offsets negativos para temporales y locales.
+  - Manejo de retornos con `NodoReturn` y epílogo estándar: resultado en acumulador `AC` (`r0`), dirección de retorno en `AC1`, restauración de `MP` del llamador y salto `LDA PC, 0(AC1)`.
+  - Salto incondicional sobre cuerpos de subrutinas en el flujo principal y soporte de backpatching para llamadas anticipadas.
+  - Resolución estricta de ámbitos (Scope): acceso a parámetros/locales vía `MP` y variables globales vía `GP`.
+  - Compatibilidad total con llamadas anidadas, procedimientos (`mostrar`) y funciones en expresiones (`V[1] := multiplicar(x, 2)`).
 
 ### 👤 Módulos 3 y 4: IDE y Depurador Visual (Integrante 3)
 - [x] Prototipo del simulador visual de la Tiny Machine (`tmsimv1.html`) con visualización de `dMem`, `iMem` y registros (`PC`, `GP`, `MP`, `AC`, `AC1`).

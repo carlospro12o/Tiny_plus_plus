@@ -19,6 +19,7 @@ public class Generador {
 	
 	private static int desplazamientoTmp = 0;
 	private static TablaSimbolos tablaSimbolos = null;
+	private static InfoSubrutina subrutinaActual = null;
 	
 	// Pool de memoria para literales de cadena (Mision 3: Cadenas de Texto)
 	private static Map<String, Integer> poolCadenas = new LinkedHashMap<>();
@@ -37,6 +38,8 @@ public class Generador {
 		
 		// Inicializar y recolectar cadenas en memoria
 		poolCadenas.clear();
+		subrutinaActual = null;
+		desplazamientoTmp = 0;
 		if (tablaSimbolos != null) {
 			dirSiguienteString = tablaSimbolos.getSiguienteDireccionDisponible() + 1;
 		} else {
@@ -148,13 +151,11 @@ public class Generador {
 			}else if (nodo instanceof NodoDeclaracion){
 				if(UtGen.debug) UtGen.emitirComentario("declaracion: " + ((NodoDeclaracion)nodo).getIdentificador() + " (" + ((NodoDeclaracion)nodo).getTipo() + ")");
 			}else if (nodo instanceof NodoSubrutina){
-				if(UtGen.debug) UtGen.emitirComentario("subrutina: " + ((NodoSubrutina)nodo).getIdentificador());
+				generarSubrutina((NodoSubrutina)nodo);
 			}else if (nodo instanceof NodoReturn){
-				if(UtGen.debug) UtGen.emitirComentario("return");
-				NodoReturn ret = (NodoReturn) nodo;
-				if (ret.tieneExpresion()) generar(ret.getExpresion());
+				generarReturn((NodoReturn)nodo);
 			}else if (nodo instanceof NodoLlamada){
-				if(UtGen.debug) UtGen.emitirComentario("llamada: " + ((NodoLlamada)nodo).getIdentificador());
+				generarLlamada((NodoLlamada)nodo);
 			}else{
 				System.out.println("BUG: Tipo de nodo a generar desconocido: " + nodo.getClass().getSimpleName());
 			}
@@ -204,11 +205,15 @@ public class Generador {
 	
 	private static void generarAsignacion(NodoBase nodo){
 		NodoAsignacion n = (NodoAsignacion)nodo;
-		int direccion;
 		if(UtGen.debug) UtGen.emitirComentario("-> asignacion");		
 		generar(n.getExpresion());
-		direccion = tablaSimbolos.getDireccion(n.getIdentificador());
-		UtGen.emitirRM("ST", UtGen.AC, direccion, UtGen.GP, "asignacion: almaceno el valor para el id "+n.getIdentificador());
+		if (subrutinaActual != null && subrutinaActual.esLocalOParametro(n.getIdentificador())) {
+			int offset = subrutinaActual.getOffset(n.getIdentificador());
+			UtGen.emitirRM("ST", UtGen.AC, offset, UtGen.MP, "asig: almacenar en param/local " + n.getIdentificador() + " en " + offset + "(MP)");
+		} else {
+			int direccion = tablaSimbolos.getDireccion(n.getIdentificador());
+			UtGen.emitirRM("ST", UtGen.AC, direccion, UtGen.GP, "asignacion: almaceno el valor para el id "+n.getIdentificador());
+		}
 		if(UtGen.debug) UtGen.emitirComentario("<- asignacion");
 	}
 
@@ -261,11 +266,15 @@ public class Generador {
 	
 	private static void generarLeer(NodoBase nodo){
 		NodoLeer n = (NodoLeer)nodo;
-		int direccion;
 		if(UtGen.debug) UtGen.emitirComentario("-> leer");
 		UtGen.emitirRO("IN", UtGen.AC, 0, 0, "leer: lee un valor entero ");
-		direccion = tablaSimbolos.getDireccion(n.getIdentificador());
-		UtGen.emitirRM("ST", UtGen.AC, direccion, UtGen.GP, "leer: almaceno el valor entero leido en el id "+n.getIdentificador());
+		if (subrutinaActual != null && subrutinaActual.esLocalOParametro(n.getIdentificador())) {
+			int offset = subrutinaActual.getOffset(n.getIdentificador());
+			UtGen.emitirRM("ST", UtGen.AC, offset, UtGen.MP, "leer: almaceno en param/local " + n.getIdentificador() + " en " + offset + "(MP)");
+		} else {
+			int direccion = tablaSimbolos.getDireccion(n.getIdentificador());
+			UtGen.emitirRM("ST", UtGen.AC, direccion, UtGen.GP, "leer: almaceno el valor entero leido en el id "+n.getIdentificador());
+		}
 		if(UtGen.debug) UtGen.emitirComentario("<- leer");
 	}
 	
@@ -279,7 +288,10 @@ public class Generador {
 			esCadena = true;
 		} else if (n.getExpresion() instanceof NodoIdentificador) {
 			NodoIdentificador id = (NodoIdentificador) n.getExpresion();
-			if ("string".equalsIgnoreCase(tablaSimbolos.getTipo(id.getNombre()))) {
+			String tipo = (subrutinaActual != null && subrutinaActual.esLocalOParametro(id.getNombre()))
+				? subrutinaActual.getTipo(id.getNombre())
+				: tablaSimbolos.getTipo(id.getNombre());
+			if ("string".equalsIgnoreCase(tipo)) {
 				esCadena = true;
 			}
 		}
@@ -331,10 +343,14 @@ public class Generador {
 	
 	private static void generarIdentificador(NodoBase nodo){
 		NodoIdentificador n = (NodoIdentificador)nodo;
-		int direccion;
 		if(UtGen.debug) UtGen.emitirComentario("-> identificador");
-		direccion = tablaSimbolos.getDireccion(n.getNombre());
-		UtGen.emitirRM("LD", UtGen.AC, direccion, UtGen.GP, "cargar valor de identificador: "+n.getNombre());
+		if (subrutinaActual != null && subrutinaActual.esLocalOParametro(n.getNombre())) {
+			int offset = subrutinaActual.getOffset(n.getNombre());
+			UtGen.emitirRM("LD", UtGen.AC, offset, UtGen.MP, "cargar param/local: " + n.getNombre() + " desde " + offset + "(MP)");
+		} else {
+			int direccion = tablaSimbolos.getDireccion(n.getNombre());
+			UtGen.emitirRM("LD", UtGen.AC, direccion, UtGen.GP, "cargar valor de identificador: "+n.getNombre());
+		}
 		if(UtGen.debug) UtGen.emitirComentario("<- identificador");
 	}
 
@@ -477,4 +493,144 @@ public class Generador {
 		}
 	}
 
+	/* =========================================================================
+	 * MISION 4: SUBRUTINAS, FUNCIONES, LLAMADAS Y MARCOS DE PILA (STACK FRAMES)
+	 * ========================================================================= */
+
+	private static void generarSubrutina(NodoSubrutina n){
+		String nombre = n.getIdentificador();
+		if(UtGen.debug) UtGen.emitirComentario("-> definicion de subrutina: " + nombre);
+
+		InfoSubrutina info = tablaSimbolos != null ? tablaSimbolos.getSubrutina(nombre) : null;
+		if (info == null) {
+			info = new InfoSubrutina(nombre, n.getTipoRetorno());
+			NodoBase p = n.getParametros();
+			while (p != null) {
+				if (p instanceof NodoDeclaracion) {
+					NodoDeclaracion dec = (NodoDeclaracion) p;
+					info.agregarParametro(dec.getIdentificador(), dec.getTipo());
+				}
+				p = p.getHermanoDerecha();
+			}
+			if (tablaSimbolos != null) tablaSimbolos.registrarSubrutina(info);
+		}
+
+		// 1. Salto incondicional sobre el cuerpo de la subrutina para evitar ejecucion secuencial
+		int saltoSobre = UtGen.emitirSalto(1);
+
+		// 2. Punto de entrada de la subrutina en iMem
+		int dirEntrada = UtGen.emitirSalto(0);
+		info.setDireccionEntrada(dirEntrada);
+		UtGen.emitirComentario("=== ENTRADA SUBRUTINA: " + nombre + " en iMem[" + dirEntrada + "] ===");
+
+		// 3. Resolver llamadas previas que estaban pendientes (forward calls)
+		for (int dirSaltoPendiente : info.getLlamadasPendientes()) {
+			UtGen.cargarRespaldo(dirSaltoPendiente);
+			UtGen.emitirRM_Abs("LDA", UtGen.PC, dirEntrada, "call (backpatch): saltar a subrutina " + nombre);
+			UtGen.restaurarRespaldo();
+		}
+		info.getLlamadasPendientes().clear();
+
+		// 4. Cambiar contexto de subrutina y preparar pila
+		InfoSubrutina anterior = subrutinaActual;
+		subrutinaActual = info;
+		int tmpAnterior = desplazamientoTmp;
+		desplazamientoTmp = -(info.getCantidadLocales() + 1);
+
+		// 5. Generar cuerpo de la subrutina
+		generar(n.getCuerpo());
+
+		// 6. Epilogo por defecto al final del cuerpo
+		UtGen.emitirComentario("Epilogo por defecto de subrutina: " + nombre);
+		UtGen.emitirRM("LD", UtGen.AC1, 0, UtGen.MP, "epilogo: cargar direccion de retorno desde 0(MP)");
+		UtGen.emitirRM("LD", UtGen.MP, 1, UtGen.MP, "epilogo: restaurar MP del llamador desde 1(MP)");
+		UtGen.emitirRM("LDA", UtGen.PC, 0, UtGen.AC1, "epilogo: saltar a la direccion de retorno");
+
+		// 7. Restaurar contexto
+		subrutinaActual = anterior;
+		desplazamientoTmp = tmpAnterior;
+
+		// 8. Reajustar el salto que salta sobre el cuerpo de la subrutina
+		int dirDespues = UtGen.emitirSalto(0);
+		UtGen.cargarRespaldo(saltoSobre);
+		UtGen.emitirRM_Abs("LDA", UtGen.PC, dirDespues, "salto sobre subrutina: " + nombre);
+		UtGen.restaurarRespaldo();
+
+		if(UtGen.debug) UtGen.emitirComentario("<- definicion de subrutina: " + nombre);
+	}
+
+	private static void generarReturn(NodoReturn n){
+		if(UtGen.debug) UtGen.emitirComentario("-> return");
+		if (n.tieneExpresion()) {
+			generar(n.getExpresion()); // El resultado queda en AC (r0)
+		}
+		// Emitir epilogo inmediato de retorno
+		UtGen.emitirRM("LD", UtGen.AC1, 0, UtGen.MP, "return: cargar direccion de retorno desde 0(MP)");
+		UtGen.emitirRM("LD", UtGen.MP, 1, UtGen.MP, "return: restaurar MP del llamador desde 1(MP)");
+		UtGen.emitirRM("LDA", UtGen.PC, 0, UtGen.AC1, "return: saltar a direccion de retorno");
+		if(UtGen.debug) UtGen.emitirComentario("<- return");
+	}
+
+	private static void generarLlamada(NodoLlamada n){
+		String nombre = n.getIdentificador();
+		if(UtGen.debug) UtGen.emitirComentario("-> llamada a subrutina: " + nombre);
+
+		InfoSubrutina info = tablaSimbolos != null ? tablaSimbolos.getSubrutina(nombre) : null;
+		int tmpAnterior = desplazamientoTmp;
+
+		// 1. Evaluar y apilar argumentos secuencialmente
+		NodoBase arg = n.getArgumentos();
+		int argCount = 0;
+		while (arg != null) {
+			NodoBase siguiente = arg.getHermanoDerecha();
+			arg.setHermanoDerecha(null); // Desconectar temporalmente para aislar la expresion de este argumento
+			generar(arg); // Resultado en AC
+			arg.setHermanoDerecha(siguiente); // Restaurar
+			UtGen.emitirRM("ST", UtGen.AC, desplazamientoTmp--, UtGen.MP, "call: push argumento " + argCount + " para " + nombre);
+			argCount++;
+			arg = siguiente;
+		}
+
+		// 2. Apilar antiguo MP (Dynamic Link)
+		UtGen.emitirRM("ST", UtGen.MP, desplazamientoTmp--, UtGen.MP, "call: push antiguo MP (enlace dinamico)");
+
+		// 3. Reservar slot y apilar direccion de retorno
+		int instCargarRet = UtGen.emitirSalto(1); // placeholder para LDA AC, retAddr(PC)
+		UtGen.emitirRM("ST", UtGen.AC, desplazamientoTmp--, UtGen.MP, "call: push direccion de retorno en el nuevo marco");
+
+		// 4. Actualizar MP para que apunte al slot de direccion de retorno del nuevo marco
+		UtGen.emitirRM("LDA", UtGen.MP, desplazamientoTmp + 1, UtGen.MP, "call: actualizar MP al nuevo marco de activacion");
+
+		// 5. Emitir salto al inicio de la subrutina
+		int instSaltoSub = UtGen.emitirSalto(1);
+
+		// 6. Localidad de retorno (donde continua el llamador)
+		int dirRetorno = UtGen.emitirSalto(0);
+
+		// 7. Parchear la carga de la direccion de retorno
+		UtGen.cargarRespaldo(instCargarRet);
+		UtGen.emitirRM_Abs("LDA", UtGen.AC, dirRetorno, "call: cargar direccion de retorno en AC");
+		UtGen.restaurarRespaldo();
+
+		// 8. Parchear el salto a la subrutina
+		if (info != null && info.getDireccionEntrada() != -1) {
+			UtGen.cargarRespaldo(instSaltoSub);
+			UtGen.emitirRM_Abs("LDA", UtGen.PC, info.getDireccionEntrada(), "call: saltar a subrutina " + nombre);
+			UtGen.restaurarRespaldo();
+		} else {
+			// Subrutina aun no emitida (llamada hacia adelante)
+			if (info == null) {
+				info = new InfoSubrutina(nombre, null);
+				if (tablaSimbolos != null) tablaSimbolos.registrarSubrutina(info);
+			}
+			info.agregarLlamadaPendiente(instSaltoSub);
+		}
+
+		// 9. Restaurar desplazamiento temporal del llamador
+		desplazamientoTmp = tmpAnterior;
+
+		if(UtGen.debug) UtGen.emitirComentario("<- llamada a subrutina: " + nombre);
+	}
+
 }
+
