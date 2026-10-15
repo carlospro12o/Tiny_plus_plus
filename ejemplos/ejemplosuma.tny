@@ -1,5 +1,0 @@
-{ Sample program
-  in TINY language -
-  computes factorial
-}
-write 1+2*3

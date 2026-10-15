@@ -82,9 +82,7 @@ TinyPlus/
 ├── compilar_codigo.bat              # Script para compilar las clases Java
 ├── ejecutar.bat                     # Script para ejecutar el compilador sobre un archivo .tny
 ├── probar_backend.bat               # Script para validar la generación de código TM aislada
-├── iniciar_servidor_ide.bat         # Script para lanzar el IDE Web en el navegador
-├── tmsimv1.html                     # Simulador gráfico web de la Tiny Machine (versión base)
-└── TM.C                             # Simulador en lenguaje C para la máquina TM
+└── iniciar_servidor_ide.bat         # Script para lanzar el IDE Web en el navegador
 ```
 
 ---
@@ -93,7 +91,6 @@ TinyPlus/
 
 - **Java JDK 8+** (configurado en `PATH` o detectado automáticamente por los scripts y el servidor).
 - **Node.js 16+** (para iniciar el servidor local del IDE y depurador visual).
-- **GCC / MinGW** (opcional, para compilar el simulador C `TM.C`).
 
 ---
 
