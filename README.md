@@ -37,9 +37,14 @@ El proyecto se encuentra dividido en las siguientes áreas de responsabilidad:
   - Resolución estricta de ámbitos (Scope): acceso a parámetros/locales vía `MP` y variables globales vía `GP`.
   - Compatibilidad total con llamadas anidadas, procedimientos (`mostrar`) y funciones en expresiones (`V[1] := multiplicar(x, 2)`).
 
-### 👤 Módulos 3 y 4: IDE y Depurador Visual (Integrante 3)
-- [x] Prototipo del simulador visual de la Tiny Machine (`tmsimv1.html`) con visualización de `dMem`, `iMem` y registros (`PC`, `GP`, `MP`, `AC`, `AC1`).
-- [ ] Integración del editor de código Tiny++, consola de compilación y enlace de depuración paso a paso.
+### 👤 Módulos 3 y 4: IDE y Depurador Visual (Ana Paola Pineda)
+- [x] Editor web interactivo de código Tiny++ con numeración de líneas, consola de estado y atajos.
+- [x] Servidor de integración local Node.js (`ide/server.js`) con autodetección de JDK y compilación en tiempo real (`POST /compile`).
+- [x] Depurador visual de la Tiny Machine (`ide/index.html`, `ide/js/tm-engine.js`, `ide/js/tm-ui.js`):
+  - Ejecución controlada paso a paso (`Paso`, `Ejecutar`, `Pausar`, `Reiniciar`).
+  - Visualización en tiempo real de todos los registros (`PC`, `GP`, `MP`, `AC`, `AC1`, `R2`).
+  - Inspección reactiva de la Memoria de Instrucciones (`iMem`) y Memoria de Datos (`dMem`).
+  - Terminal interactiva para instrucciones de entrada/salida (`IN` y `OUT`).
 
 ---
 
@@ -64,12 +69,21 @@ TinyPlus/
 │       ├── UtGen.java               # Utilidades de emisión de instrucciones TM
 │       ├── TestBackend.java         # Suite de pruebas unitarias del backend
 │       └── nodosAST/                # Nodos del Árbol de Sintaxis Abstracta (AST)
+├── ide/                             # IDE Web y Depurador Visual de la Tiny Machine
+│   ├── index.html                   # Interfaz de usuario integrada
+│   ├── server.js                    # Servidor local Node.js para compilar código .tny
+│   ├── js/
+│   │   ├── editor.js                # Lógica del editor de código y comunicación HTTP
+│   │   ├── tm-engine.js             # Motor simulador de la Tiny Machine en JavaScript
+│   │   └── tm-ui.js                 # Controlador visual de registros, memorias y consola
+│   └── styles/                      # Hojas de estilo modulares (layout, editor, componentes)
 ├── ejemplos/                        # Archivos de prueba en código Tiny++ (.tny)
 ├── compilar_gramatica.bat           # Script para regenerar Léxico.java y parser.java
 ├── compilar_codigo.bat              # Script para compilar las clases Java
 ├── ejecutar.bat                     # Script para ejecutar el compilador sobre un archivo .tny
 ├── probar_backend.bat               # Script para validar la generación de código TM aislada
-├── tmsimv1.html                     # Simulador gráfico web de la Tiny Machine
+├── iniciar_servidor_ide.bat         # Script para lanzar el IDE Web en el navegador
+├── tmsimv1.html                     # Simulador gráfico web de la Tiny Machine (versión base)
 └── TM.C                             # Simulador en lenguaje C para la máquina TM
 ```
 
@@ -77,22 +91,25 @@ TinyPlus/
 
 ## ⚙️ Requisitos
 
-- **Java JDK 8+** (configurado en `PATH` o detectado automáticamente por los scripts).
+- **Java JDK 8+** (configurado en `PATH` o detectado automáticamente por los scripts y el servidor).
+- **Node.js 16+** (para iniciar el servidor local del IDE y depurador visual).
 - **GCC / MinGW** (opcional, para compilar el simulador C `TM.C`).
 
 ---
 
 ## 🚀 Compilación y Ejecución
 
-### 1. Probar la Generación de Código del Backend (Misiones 1 y 2)
-Permite validar el funcionamiento de operadores relacionales, booleanos y arreglos unidimensionales en la TM de forma directa:
+### 1. Iniciar el IDE Web y Depurador Visual
+Ejecute el siguiente script para iniciar el servidor local y abrir la interfaz en el navegador:
+```cmd
+iniciar_servidor_ide.bat
+```
+El IDE estará disponible en `http://localhost:3000`, permitiendo escribir código Tiny++, compilarlo con un clic y depurarlo paso a paso en la Tiny Machine.
+
+### 2. Probar la Generación de Código del Backend (Misiones 1 a 4)
+Permite validar el funcionamiento de operadores relacionales, booleanos, arreglos unidimensionales, cadenas y subrutinas con marcos de pila:
 ```cmd
 probar_backend.bat
-```
-
-### 2. Regenerar Léxico y Sintáctico (JFlex + CUP)
-```cmd
-compilar_gramatica.bat
 ```
 
 ### 3. Compilar el Código Fuente Java
@@ -100,9 +117,14 @@ compilar_gramatica.bat
 compilar_codigo.bat
 ```
 
-### 4. Ejecutar el Compilador sobre un archivo `.tny`
+### 4. Ejecutar el Compilador por Consola sobre un archivo `.tny`
 ```cmd
-ejecutar.bat ejemplos\factorial_tiny_plus.tny
+ejecutar.bat ejemplos\test_completo_tiny_plus.tny
+```
+
+### 5. Regenerar Léxico y Sintáctico (JFlex + CUP)
+```cmd
+compilar_gramatica.bat
 ```
 
 ---
@@ -112,3 +134,4 @@ Desarrollado para la materia de **Compiladores e Intérpretes** — **Universida
 
 - **Jesús Chacón** — Módulo 1: Frontend, Léxico, Sintaxis, Ámbitos jerárquicos y Verificador Semántico estricto.
 - **Carlos Ocáriz** — Módulo 2: Backend, Generador TM, Operadores, Arreglos, Cadenas y Marcos de Pila.
+- **Ana Paola Pineda** — Módulos 3 y 4: IDE Web, Servidor de Compilación y Depurador Visual de la Tiny Machine.

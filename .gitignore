@@ -1,4 +1,4 @@
-﻿# IDE files
+# IDE files
 .idea/
 *.iml
 *.ipr
@@ -16,3 +16,4 @@ Thumbs.db
 .DS_Store
 *.tmp
 *.bak
+ejemplos/_ide_*
