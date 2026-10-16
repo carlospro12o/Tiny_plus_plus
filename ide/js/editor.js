@@ -142,6 +142,7 @@ const IdeConsole = {
   info(msg) { this.log(msg, 'info'); },
   success(msg) { this.log(msg, 'success'); },
   warning(msg) { this.log(msg, 'warning'); },
+  output(msg) { this.log(msg, 'output'); },
   error(msg) { 
     this.log(msg, 'error'); 
     // Si hay un error, activar o resaltar el tab de errores
@@ -169,7 +170,7 @@ const IdeConsole = {
 
     let filtered = this.logs;
     if (this.activeTab === 'output') {
-      filtered = this.logs.filter(l => l.type === 'info' || l.type === 'success');
+      filtered = this.logs.filter(l => l.type === 'output' || l.type === 'info' || l.type === 'success');
     } else if (this.activeTab === 'errors') {
       filtered = this.logs.filter(l => l.type === 'error' || l.type === 'warning');
     }
@@ -183,7 +184,8 @@ const IdeConsole = {
       info: 'ℹ',
       success: '✔',
       warning: '⚠',
-      error: '✖'
+      error: '✖',
+      output: '📤'
     };
 
     this.body.innerHTML = filtered.map(item => `

@@ -99,6 +99,9 @@ function setupInputWait(cb) {
   waitInput=true; pendingCb=cb;
   document.getElementById('in-row').style.display='flex';
   document.getElementById('in-val').focus();
+  if (typeof IdeConsole !== 'undefined') {
+    IdeConsole.warning('[Entrada requerida] La instrucción IN está esperando un valor. Escribe el número en el campo "IN ▸" del panel I/O.');
+  }
 }
 
 function submitInput() {
@@ -113,6 +116,9 @@ function submitInput() {
   reg[PC]=pc+1;
   stepCount++;
   ioLog.push({t:'in', msg:`IN: ${v} → reg[${inst.a1}]`});
+  if (typeof IdeConsole !== 'undefined') {
+    IdeConsole.info(`[Entrada recibida] IN: ${v} almacenado en reg[${inst.a1}].`);
+  }
   
   // Check if new PC is a breakpoint
   let r=OK;

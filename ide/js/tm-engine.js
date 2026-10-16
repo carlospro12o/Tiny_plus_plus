@@ -160,6 +160,9 @@ function stepTM() {
     case 0:  // HALT
       reg[PC]=pc;
       ioLog.push({t:'halt',msg:`HALT at ${pc}`});
+      if (typeof IdeConsole !== 'undefined') {
+        IdeConsole.success(`[TM] Programa finalizado: HALT en instrucción ${pc}.`);
+      }
       stepCount++; return HALTED;
 
     case 1:  // IN
@@ -167,7 +170,15 @@ function stepTM() {
       return NEEDS_IN;
 
     case 2:  // OUT
-      ioLog.push({t:'out',msg:`OUT: ${reg[r]}`});
+      const outVal = reg[r];
+      let outStr = `OUT: ${outVal}`;
+      if (outVal >= 32 && outVal <= 126) {
+        outStr += ` ('${String.fromCharCode(outVal)}')`;
+      }
+      ioLog.push({t:'out', msg: outStr});
+      if (typeof IdeConsole !== 'undefined') {
+        IdeConsole.output(`[Salida TM] ${outVal}${outVal >= 32 && outVal <= 126 ? ` ('${String.fromCharCode(outVal)}')` : ''}`);
+      }
       break;
 
     case 3:  reg[r]=reg[s]+reg[t]; break;
