@@ -32,6 +32,12 @@
     <span class="btn-compile-icon">⚡</span> Compilar y Cargar
   </button>
 
+  <!-- Indicador visual de conexión con el Servidor Node.js -->
+  <div id="header-server-status" title="Estado de conexión con el servidor Node.js (iniciar_servidor_ide.bat)" style="display:flex;align-items:center;gap:6px;font-size:11px;margin-left:auto;margin-right:12px;padding:3px 8px;border-radius:4px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+    <span class="status-dot checking" id="header-status-dot" style="width:7px;height:7px;border-radius:50%;display:inline-block;background:#f59e0b;"></span>
+    <span id="header-status-text" style="color:var(--text2);font-weight:500;">Verificando servidor...</span>
+  </div>
+
   <button class="btn" id="btn-paste-toggle">paste ▾</button>
   <label class="btn go" style="cursor:pointer" title="Cargar archivo .tm desde disco">
     load .tm

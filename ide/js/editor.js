@@ -32,10 +32,13 @@ const Editor = {
     // Soporte para tecla Tab (inserta 2 espacios en vez de perder foco)
     this.textarea.addEventListener('keydown', (e) => this.handleKeyDown(e));
 
-    // Código de bienvenida por defecto (ejemplo factorial.tny)
+    // Código de bienvenida por defecto (ejemplo factorial_tiny_plus.tny)
     const initialCode = 
 `{ Programa de Ejemplo Tiny++: Factorial }
-read x; { Leer número entero }
+int x;
+int fact;
+
+read x; { Leer numero entero }
 if 0 < x then { No calcular si x <= 0 }
   fact := 1;
   repeat

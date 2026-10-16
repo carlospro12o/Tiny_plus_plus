@@ -549,7 +549,7 @@ const CompilerBridge = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: sourceCode, fileName: activeFileName }),
-        signal: AbortSignal.timeout(3000)
+        signal: AbortSignal.timeout(15000)
       });
 
       if (response.ok) {
@@ -715,7 +715,7 @@ const CompilerBridge = {
     this.updateServerStatusUI('checking');
     try {
       const res = await fetch(`${this.serverUrl}/status`, {
-        signal: AbortSignal.timeout(1200)
+        signal: AbortSignal.timeout(3000)
       });
       if (res.ok) {
         this.isServerOnline = true;
@@ -736,17 +736,39 @@ const CompilerBridge = {
   updateServerStatusUI(status) {
     const dot = document.getElementById('server-status-dot');
     const text = document.getElementById('server-status-text');
-    if (!dot || !text) return;
+    const headerDot = document.getElementById('header-status-dot');
+    const headerText = document.getElementById('header-status-text');
 
     if (status === 'checking') {
-      dot.className = 'status-dot checking';
-      text.textContent = 'Verificando servidor de compilación (localhost:3000)...';
+      if (dot) dot.className = 'status-dot checking';
+      if (text) text.textContent = 'Verificando servidor de compilación (localhost:3000)...';
+      if (headerDot) {
+        headerDot.className = 'status-dot checking';
+        headerDot.style.background = '#f59e0b';
+      }
+      if (headerText) headerText.textContent = 'Verificando servidor...';
     } else if (status === true) {
-      dot.className = 'status-dot online';
-      text.textContent = '🟢 Servidor local conectado en localhost:3000. Compilación 1-clic activa.';
+      if (dot) dot.className = 'status-dot online';
+      if (text) text.textContent = '🟢 Servidor local conectado en localhost:3000. Compilación 1-clic activa.';
+      if (headerDot) {
+        headerDot.className = 'status-dot online';
+        headerDot.style.background = '#10b981';
+      }
+      if (headerText) {
+        headerText.textContent = '🟢 Servidor Conectado';
+        headerText.style.color = '#10b981';
+      }
     } else {
-      dot.className = 'status-dot offline';
-      text.textContent = '⚪ Servidor local desconectado. Modo manual activo (carga o pega tu archivo .tm).';
+      if (dot) dot.className = 'status-dot offline';
+      if (text) text.textContent = '⚪ Servidor local desconectado. Modo manual activo (carga o pega tu archivo .tm).';
+      if (headerDot) {
+        headerDot.className = 'status-dot offline';
+        headerDot.style.background = '#ef4444';
+      }
+      if (headerText) {
+        headerText.textContent = '🔴 Servidor Desconectado';
+        headerText.style.color = '#ef4444';
+      }
     }
   }
 };
