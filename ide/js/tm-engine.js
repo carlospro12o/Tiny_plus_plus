@@ -62,7 +62,7 @@ function fmtArgs(inst) {
 
 // ── Parser ──────────────────────────────────────────────────
 // Convierte el texto de un archivo .tm en instrucciones en iMem.
-// Formato esperado: "loc: OPCODE r,d(s) * comentario"
+// Soporta tanto instrucciones con o sin asterisco en los comentarios.
 function parseProgram(text) {
   iMem = Array.from({length:ISIZE}, (_,i) =>
     ({iop:0, a1:0, a2:0, a3:0, comment:'', loc:i, has:false}));
@@ -71,8 +71,8 @@ function parseProgram(text) {
   let maxLoc=0;
 
   for (let ln=0; ln<lines.length; ln++) {
-    let line = lines[ln].replace(/\r/g,'').trimEnd();
-    if (!line.trim() || line.trim()[0]==='*') continue;
+    let line = lines[ln].replace(/\r/g,'').trim();
+    if (!line || line[0]==='*') continue;
 
     const ci = line.indexOf(':');
     if (ci<0) { errors.push(`L${ln+1}: missing colon`); continue; }
@@ -82,15 +82,10 @@ function parseProgram(text) {
 
     let rest = line.slice(ci+1).trim();
 
-    // Extract comment after *
-    let comment='';
-    const si = rest.indexOf('*');
-    if (si>=0) { comment=rest.slice(si+1).trim(); rest=rest.slice(0,si).trim(); }
-
     // Opcode token
     const sep = rest.search(/[\s,]/);
     let opStr = (sep<0 ? rest : rest.slice(0,sep)).toUpperCase();
-    let argStr = sep<0 ? '' : rest.slice(sep).replace(/\s+/g,'');
+    let restArgs = sep<0 ? '' : rest.slice(sep).trim();
 
     // Match opcode (4-char prefix)
     let opNum = -1;
@@ -99,21 +94,36 @@ function parseProgram(text) {
     }
     if (opNum<0||OP[opNum]==='????') { errors.push(`L${ln+1}: unknown op "${opStr}"`); continue; }
 
-    let a1=0,a2=0,a3=0;
-    const parts = argStr.split(',');
+    let a1=0, a2=0, a3=0, comment='';
 
     if (cls(opNum)==='RR') {
-      a1=parseInt(parts[0])||0;
-      a2=parseInt(parts[1])||0;
-      a3=parseInt(parts[2])||0;
+      const rrMatch = restArgs.match(/^(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(.*)$/);
+      if (rrMatch) {
+        a1 = parseInt(rrMatch[1]);
+        a2 = parseInt(rrMatch[2]);
+        a3 = parseInt(rrMatch[3]);
+        comment = rrMatch[4].replace(/^\s*\*?\s*/, '').trim();
+      } else {
+        const parts = restArgs.split(',');
+        a1 = parseInt(parts[0])||0;
+        a2 = parseInt(parts[1])||0;
+        a3 = parseInt(parts[2])||0;
+      }
     } else {
-      a1=parseInt(parts[0])||0;
-      const ds = (parts[1]||'')+(parts[2]||'');
-      const m = ds.match(/^(-?\d+)\((\d+)\)$/);
-      if (m) { a2=parseInt(m[1]); a3=parseInt(m[2]); }
-      else {
-        a2=parseInt(parts[1])||0;
-        a3=parseInt((parts[2]||'').replace(/[()]/g,''))||0;
+      // RM or RA: r, d(s)
+      const rmMatch = restArgs.match(/^(\d+)\s*,\s*(-?\d+)(?:\s*\(\s*(\d+)\s*\))?(.*)$/);
+      if (rmMatch) {
+        a1 = parseInt(rmMatch[1]);
+        a2 = parseInt(rmMatch[2]);
+        a3 = rmMatch[3] !== undefined ? parseInt(rmMatch[3]) : 0;
+        comment = rmMatch[4].replace(/^\s*\*?\s*/, '').trim();
+      } else {
+        const parts = restArgs.split(',');
+        a1 = parseInt(parts[0])||0;
+        const ds = (parts[1]||'')+(parts[2]||'');
+        const m = ds.match(/^(-?\d+)\((\d+)\)/);
+        if (m) { a2=parseInt(m[1]); a3=parseInt(m[2]); }
+        else { a2=parseInt(parts[1])||0; a3=0; }
       }
     }
 
