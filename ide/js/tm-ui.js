@@ -554,24 +554,22 @@ const CompilerBridge = {
 
       if (response.ok) {
         const data = await response.json();
+        
+        // Entregar resultado estructurado a la consola (AST, símbolos, problemas, etc.)
+        if (typeof IdeConsole !== 'undefined' && IdeConsole.setCompilationResult) {
+          IdeConsole.setCompilationResult(data);
+        }
+
         if (data.success && data.tmCode) {
-          if (typeof IdeConsole !== 'undefined') {
-            IdeConsole.success('[Compilador] Compilación Java completada con éxito.');
-            if (data.log) IdeConsole.info(data.log);
-          }
           const targetTmName = activeFileName.replace(/\.tny$/i, '') + '.tm';
           loadProgram(data.tmCode, targetTmName);
           this.isServerOnline = true;
           this.updateServerStatusUI(true);
           return;
         } else {
-          // El compilador Java reportó errores (sintácticos, semánticos, etc.)
-          if (typeof IdeConsole !== 'undefined') {
-            IdeConsole.error('[Compilador] Errores detectados durante la compilación de Tiny++:');
-            if (data.errors) IdeConsole.error(data.errors);
-            if (data.log) IdeConsole.info(data.log);
-            IdeConsole.setTab('errors');
-          }
+          // Si hubo errores, permanecer en la vista de errores
+          this.isServerOnline = true;
+          this.updateServerStatusUI(true);
           return;
         }
       }
@@ -603,7 +601,7 @@ const CompilerBridge = {
       const cmdEl = document.getElementById('modal-cmd-text');
       const curFile = (typeof Editor !== 'undefined' && Editor.currentFileName) 
         ? Editor.currentFileName 
-        : 'factorial.tny';
+        : 'factorial_tiny_plus.tny';
       if (cmdEl) {
         cmdEl.textContent = `ejecutar.bat ${curFile.includes('/') || curFile.includes('\\') ? curFile : 'ejemplos\\' + curFile}`;
       }

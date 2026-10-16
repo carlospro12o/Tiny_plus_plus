@@ -158,7 +158,7 @@ public class ChequeadorSemantico {
 
         if (dec.esArreglo()) {
             if (dec.getTamanoArreglo() == null || dec.getTamanoArreglo() <= 0) {
-                agregarError(dec.getLinea(), "El tamao del arreglo '" + id + "' debe ser un entero positivo.");
+                agregarError(dec.getLinea(), "El tamaño del arreglo '" + id + "' debe ser un entero positivo.");
             }
             tablaSimbolos.insertarArreglo(id, dec.getTipo(), (dec.getTamanoArreglo() != null) ? dec.getTamanoArreglo() : 1, dec.getLinea());
         } else {

@@ -74,12 +74,13 @@
         <div class="editor-tab-group">
           <div class="editor-tab">
             <span class="file-icon">📄</span>
-            <span id="editor-active-file">factorial.tny</span>
+            <span id="editor-active-file">factorial_tiny_plus.tny</span>
           </div>
         </div>
         <div class="editor-actions">
+          <button class="btn go" id="btn-editor-compile" title="Compilar con backend Java ve.edu.unet.parser (Ctrl+Enter)" onclick="TmIntegration.handleCompileAndLoad()" style="font-weight:600;padding:2px 8px;font-size:10px;">⚡ Compilar</button>
           <button class="btn" id="btn-new-code" title="Nuevo archivo de código" onclick="Editor.setSource('','nuevo.tny')">+ Nuevo</button>
-          <label class="btn go" style="cursor:pointer;padding:2px 8px;font-size:10px;">
+          <label class="btn" style="cursor:pointer;padding:2px 8px;font-size:10px;">
             Abrir .tny
             <input type="file" id="tny-file-in" accept=".tny,.txt" style="display:none" onchange="
               if(this.files && this.files[0]) {
@@ -109,10 +110,12 @@
       <div class="console-header">
         <div class="console-tabs">
           <div class="console-tab active" data-tab="all" onclick="IdeConsole.setTab('all')">Consola</div>
-          <div class="console-tab" data-tab="output" onclick="IdeConsole.setTab('output')">Salida</div>
+          <div class="console-tab" data-tab="ast" onclick="IdeConsole.setTab('ast')">Árbol AST</div>
+          <div class="console-tab" data-tab="symbols" onclick="IdeConsole.setTab('symbols')">Tabla de Símbolos</div>
           <div class="console-tab" data-tab="errors" onclick="IdeConsole.setTab('errors')">
             Problemas <span class="console-badge badge-error" id="console-error-count" style="display:none">0</span>
           </div>
+          <div class="console-tab" data-tab="output" onclick="IdeConsole.setTab('output')">Salida TM</div>
         </div>
         <div class="console-actions">
           <button class="btn" style="font-size:9px;padding:1px 6px;" onclick="IdeConsole.clear()" title="Limpiar mensajes de consola">Limpiar</button>
@@ -287,7 +290,7 @@
       <div class="modal-section">
         <div class="modal-section-title">💡 Comandos de Compilación (Terminal)</div>
         <div class="modal-cmd-box">
-          <code id="modal-cmd-text">ejecutar.bat ejemplos\factorial.tny</code>
+          <code id="modal-cmd-text">ejecutar.bat ejemplos\factorial_tiny_plus.tny</code>
           <button class="btn" id="btn-copy-cmd" title="Copiar comando">📋 Copiar</button>
         </div>
         <div style="margin-top: 8px; display: flex; gap: 8px;">

@@ -3,7 +3,9 @@ if not exist "bin" mkdir bin
 set JAVAC_CMD=javac
 where javac >nul 2>nul
 if %errorlevel% neq 0 (
-    if exist "C:\Program Files\Apache NetBeans\jdk\bin\javac.exe" (
+    if exist "C:\Program Files\JetBrains\IntelliJ IDEA 2026.2.3\jbr\bin\javac.exe" (
+        set JAVAC_CMD="C:\Program Files\JetBrains\IntelliJ IDEA 2026.2.3\jbr\bin\javac.exe"
+    ) else if exist "C:\Program Files\Apache NetBeans\jdk\bin\javac.exe" (
         set JAVAC_CMD="C:\Program Files\Apache NetBeans\jdk\bin\javac.exe"
     )
 )

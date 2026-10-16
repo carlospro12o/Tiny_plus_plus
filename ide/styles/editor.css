@@ -237,6 +237,9 @@
 
 .console-line .c-msg {
   flex: 1;
+  white-space: pre-wrap;
+  font-family: var(--mono);
+  font-size: 11px;
 }
 
 /* Estados temáticos para los mensajes */
@@ -272,3 +275,151 @@
   color: var(--red2);
   font-weight: bold;
 }
+
+/* ── Visor de Árbol Sintáctico (AST) ────────────────────────── */
+.ast-container {
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 20px;
+  white-space: pre;
+  color: var(--text);
+  padding: 8px 12px;
+  background: var(--bg0);
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  overflow: auto;
+}
+
+.ast-title-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border2);
+  font-size: 10px;
+  color: var(--text2);
+}
+
+/* ── Visor de Tabla de Símbolos y Ámbitos ───────────────────── */
+.symbols-container {
+  overflow-x: auto;
+}
+
+.symbols-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.symbols-table th {
+  text-align: left;
+  padding: 6px 10px;
+  background: var(--bg2);
+  color: var(--text2);
+  border-bottom: 1px solid var(--border2);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.symbols-table td {
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+.symbols-table tr:hover td {
+  background: var(--bg2);
+}
+
+.badge-scope {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 600;
+  background: rgba(184, 80, 240, 0.15);
+  color: #c97bf5;
+}
+
+.badge-type {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  background: rgba(56, 184, 200, 0.15);
+  color: var(--cyan);
+}
+
+.badge-offset {
+  color: var(--amber2);
+  font-weight: 600;
+}
+
+/* ── Visor de Lista de Problemas (Errores Semánticos y Sintácticos) ── */
+.problems-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.problem-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  background: var(--red-bg);
+  border-left: 3px solid var(--red);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.problem-card:hover {
+  background: rgba(224, 82, 82, 0.22);
+  transform: translateX(2px);
+}
+
+.problem-card.warning {
+  background: rgba(230, 160, 40, 0.1);
+  border-left-color: var(--amber);
+}
+
+.problem-badge-line {
+  background: var(--red);
+  color: #fff;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+
+.problem-card.warning .problem-badge-line {
+  background: var(--amber);
+}
+
+.problem-details {
+  flex: 1;
+}
+
+.problem-category {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--amber2);
+  margin-bottom: 2px;
+}
+
+.problem-message {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--red2);
+  line-height: 16px;
+  word-break: break-word;
+}
+

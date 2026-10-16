@@ -109,7 +109,7 @@ function parseProgram(text) {
     } else {
       a1=parseInt(parts[0])||0;
       const ds = (parts[1]||'')+(parts[2]||'');
-      const m = ds.match(/^(-?\d+)\((\d+)\)$/);
+      const m = ds.match(/^(-?\d+)\((\d+)\)/);
       if (m) { a2=parseInt(m[1]); a3=parseInt(m[2]); }
       else {
         a2=parseInt(parts[1])||0;
