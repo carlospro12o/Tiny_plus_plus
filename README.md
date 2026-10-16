@@ -1,50 +1,35 @@
 # 🚀 Tiny++ Compiler (Tiny_plus_plus)
 
-Compilador para el lenguaje de programación **Tiny++** desarrollado en Java utilizando **JFlex** (Analizador Léxico) y **Java CUP** (Analizador Sintáctico), con generación de código objeto para la Máquina Virtual TM (Tiny Machine) e IDE con Depurador Visual.
+Compilador integral para el lenguaje de programación **Tiny++** desarrollado en **Java**, utilizando **JFlex** (Analizador Léxico) y **Java CUP** (Analizador Sintáctico), con generación de código objeto para la **Máquina Virtual TM (Tiny Machine)** y un **IDE Web con Depurador Visual interactivo**.
 
 ---
 
-## 📊 Estado Actual del Proyecto y Módulos
+## 🌟 Características del Sistema
 
-El proyecto se encuentra dividido en las siguientes áreas de responsabilidad:
+El compilador implementa todas las fases clásicas de la ingeniería de compiladores, estructurado en tres grandes componentes:
 
-### 👤 Módulo 1: Frontend y Verificador Semántico (Jesús Chacón)
-- [x] Ampliación del analizador léxico (`lexico.flex`) con nuevos tokens: tipos (`int`, `bool`, `string`), subrutinas (`function`, `procedure`, `return`), delimitadores de arreglos (`[`, `]`, `,`), comparadores (`>`, `<=`, `>=`, `!=`), operadores booleanos (`and`, `or`, `not`) y literales de cadena.
-- [x] Ampliación de la gramática sintáctica (`sintactico.cup`) con construcción del AST enriquecido para Tiny++.
-- [x] Tabla de símbolos con árbol de ámbitos (`Scope.java`, `TablaSimbolos.java`), control de niveles jerárquicos y resolución de variables locales/globales.
-- [x] Verificador y Chequeador Semántico estricto (`ChequeadorSemantico.java`): validación estricta de tipos, verificación de declaraciones previas, detección de duplicados por ámbito, comprobación de condiciones booleanas en `if` y `repeat`, validación de índices de arreglos e invariantes de subrutinas (firmas, parámetros y retornos).
+### 🔤 1. Frontend y Verificación Semántica
+- **Análisis Léxico (JFlex):** Reconocimiento de tipos de datos primitivos (`int`, `bool`, `string`), palabras reservadas de control (`if`, `then`, `else`, `end`, `repeat`, `until`), subrutinas (`function`, `procedure`, `return`), operadores aritméticos, relacionales (`<`, `<=`, `>`, `>=`, `=`, `!=`), lógicos (`and`, `or`, `not`), literales numéricos, booleanos y cadenas de texto.
+- **Análisis Sintáctico (Java CUP):** Gramática formal LALR(1) libre de conflictos con resolución estricta de precedencia y asociatividad de operadores. Construcción de un **Árbol de Sintaxis Abstracta (AST)** polimórfico compuesto por 18 tipos de nodos especializados.
+- **Gestión de Ámbitos (Scopes):** Tabla de símbolos jerárquica basada en un árbol de entornos que permite el aislamiento de variables locales en subrutinas, resolución de identificadores globales y sombreado de variables (*shadowing*).
+- **Chequeo Semántico Estricto:** Verificación estática con 14 reglas de validación en tiempo de compilación (declaración obligatoria antes del uso, equivalencia de tipos en asignaciones y operaciones, condiciones booleanas en estructuras de control, validación de índices de arreglos y correspondencia de firmas en llamadas y retornos). Bloquea la emisión de código objeto si se detecta cualquier inconsistencia.
 
-### 👤 Módulo 2: Backend y Generación de Código TM (Carlos Ocáriz)
-- [x] **Misión 1 - Operadores Relacionales, Lógicos y Booleanos:**
-  - Nuevos operadores en `tipoOp.java`: `>`, `<=`, `>=`, `!=`, `and`, `or`, `not`.
-  - Nodo AST `NodoBooleano.java` para literales `true` (1) y `false` (0).
-  - Emisión de instrucciones TM con saltos condicionales (`JGT`, `JLE`, `JGE`, `JNE`, `JEQ`, `JNE`) y operaciones lógicas normalizadas en `Generador.java`.
-- [x] **Misión 2 - Arreglos Unidimensionales (Vectores):**
-  - Nuevos nodos AST: `NodoAccesoArreglo.java` (lectura `A[indice]`) y `NodoAsignacionArreglo.java` (escritura `A[indice] := exp`).
-  - Asignación del registro temporal `R2` (`r2`) en `UtGen.java` para cálculo aritmético de direcciones en tiempo de ejecución.
-  - Soporte de expresiones complejas en el índice (ej: `A[i * 2 + 1] := 10;` y `x := A[i * 2 + 1] + 5;`).
-  - Manejo de desplazamientos dinámicos en la Memoria de Datos (`dMem`) mediante `LDA`, `ADD` e indexación indirecta con `LD`/`ST`.
-- [x] **Misión 3 - Cadenas de Texto (`string`):**
-  - Tipado y reserva de bloques en memoria de datos (`dMem`) en `RegistroSimbolo.java` y `TablaSimbolos.java`.
-  - String Literal Pool en `Generador.java` con carga estática en el preludio de ejecución (códigos ASCII y terminador nulo `\0`).
-  - Asignación de referencias/punteros a variables (`saludo := "hola Tiny++";`).
-  - Rutina de salida en TM con bucle de recorrido en memoria (`LD`, `OUT`, `LDA`, `JEQ`) para imprimir caracteres tanto desde variables como literales en `write`.
-- [x] **Misión 4 - Subrutinas, Funciones y Marcos de Pila (Stack Frames):**
-  - Gestión completa de funciones (`function`) y procedimientos (`procedure`) con paso de parámetros y variables locales en el marco de activación (`MP`).
-  - Registro de activación estándar: `0(MP)` dirección de retorno, `1(MP)` enlace dinámico (`Old MP`), `2..N(MP)` parámetros y offsets negativos para temporales y locales.
-  - Manejo de retornos con `NodoReturn` y epílogo estándar: resultado en acumulador `AC` (`r0`), dirección de retorno en `AC1`, restauración de `MP` del llamador y salto `LDA PC, 0(AC1)`.
-  - Salto incondicional sobre cuerpos de subrutinas en el flujo principal y soporte de backpatching para llamadas anticipadas.
-  - Resolución estricta de ámbitos (Scope): acceso a parámetros/locales vía `MP` y variables globales vía `GP`.
-  - Compatibilidad total con llamadas anidadas, procedimientos (`mostrar`) y funciones en expresiones (`V[1] := multiplicar(x, 2)`).
+### ⚙️ 2. Backend y Generación de Código TM
+- **Operadores Relacionales y Booleanos:** Evaluación en cortocircuito y normalización de valores de verdad (1 para `true`, 0 para `false`) utilizando saltos condicionales de la TM (`JLT`, `JLE`, `JGT`, `JGE`, `JEQ`, `JNE`).
+- **Arreglos Unidimensionales (Vectores):** Soporte completo para indexación y asignación con expresiones aritméticas complejas (`A[i * 2 + 1] := expr;`). Cálculo dinámico de direcciones efectivas en tiempo de ejecución utilizando el registro de soporte `R2` (`r2`).
+- **Cadenas de Texto (`string`):** Asignación estática de literales en un *String Literal Pool* en la Memoria de Datos (`dMem`) con terminador nulo `\0`. Bucle de recorrido en memoria para emisión de caracteres hacia la terminal con instrucciones `OUT`.
+- **Subrutinas y Marcos de Activación (Stack Frames):** Gestión completa de procedimientos y funciones con llamadas anidadas.
+  - Registro de activación estándar: `0(MP)` dirección de retorno, `1(MP)` enlace dinámico (*Old MP*), `2..N(MP)` parámetros y desplazamientos negativos para temporales y locales.
+  - Retorno estándar de resultados en el acumulador `AC` (`r0`), restauración de marco y salto a dirección de retorno.
 
-### 👤 Módulos 3 y 4: IDE y Depurador Visual (Ana Paola Pineda)
-- [x] Editor web interactivo de código Tiny++ con numeración de líneas, consola de estado y atajos.
-- [x] Servidor de integración local Node.js (`ide/server.js`) con autodetección de JDK y compilación en tiempo real (`POST /compile`).
-- [x] Depurador visual de la Tiny Machine (`ide/index.html`, `ide/js/tm-engine.js`, `ide/js/tm-ui.js`):
-  - Ejecución controlada paso a paso (`Paso`, `Ejecutar`, `Pausar`, `Reiniciar`).
-  - Visualización en tiempo real de todos los registros (`PC`, `GP`, `MP`, `AC`, `AC1`, `R2`).
-  - Inspección reactiva de la Memoria de Instrucciones (`iMem`) y Memoria de Datos (`dMem`).
-  - Terminal interactiva para instrucciones de entrada/salida (`IN` y `OUT`).
+### 🖥️ 3. IDE Web y Depurador Visual de la Tiny Machine
+- **Editor de Código:** Interfaz moderna con numeración de líneas sincronizada, atajos de indentación y gestión de archivos fuente `.tny`.
+- **Servidor de Compilación Local:** Servicio en Node.js (`ide/server.js`) con autodetección de ejecutables JDK y compilación en caliente con un clic (`POST /compile`).
+- **Depurador Visual de la TM:** Motor simulador en JavaScript (`tm-engine.js`) que replica el ciclo de instrucción de la máquina:
+  - Ejecución controlada paso a paso (`Step`), por bloques (`×N`), continua (`Run`), pausa y reinicio.
+  - Visualización reactiva de registros del procesador (`PC`, `GP`, `MP`, `AC`, `AC1`, `R2`).
+  - Explorador dinámico de Memoria de Instrucciones (`iMem`) y Memoria de Datos (`dMem`) con vistas Low/High.
+  - Consola multicanal integrada con sincronización en tiempo real de entradas (`IN`) y salidas (`OUT`).
 
 ---
 
@@ -52,74 +37,82 @@ El proyecto se encuentra dividido en las siguientes áreas de responsabilidad:
 
 ```text
 TinyPlus/
-├── src/
+├── src/                             # Código fuente del compilador
 │   ├── especificacion/
-│   │   ├── lexico.flex              # Especificación del analizador léxico (JFlex)
-│   │   ├── sintactico.cup           # Gramática del analizador sintáctico (Java CUP)
-│   │   ├── java-cup-11b.jar         # Librería CUP Compiler
-│   │   ├── java-cup-11b-runtime.jar # Librería CUP Runtime
-│   │   └── jflex-full-1.8.2.jar     # Librería JFlex
+│   │   ├── lexico.flex              # Especificación léxica (JFlex)
+│   │   ├── sintactico.cup           # Gramática sintáctica (Java CUP)
+│   │   ├── java-cup-11b.jar         # Compilador Java CUP
+│   │   ├── java-cup-11b-runtime.jar # Runtime de Java CUP
+│   │   └── jflex-full-1.8.2.jar     # Generador léxico JFlex
 │   └── ve/edu/unet/
-│       ├── ChequeadorSemantico.java # Verificador semántico y análisis de tipos
-│       ├── Scope.java               # Árbol de ámbitos para variables y subrutinas
-│       ├── TablaSimbolos.java       # Gestión de la Tabla de Símbolos y memoria
-│       ├── RegistroSimbolo.java     # Registro de variables, arreglos y subrutinas
-│       ├── InfoSubrutina.java       # Metadata de marcos de pila para la TM
+│       ├── Lexico.java / parser.java / sym.java # Analizadores generados
+│       ├── ChequeadorSemantico.java # Verificador semántico y de tipos
+│       ├── Scope.java               # Árbol de ámbitos para variables
+│       ├── TablaSimbolos.java       # Tabla de símbolos y memoria
+│       ├── RegistroSimbolo.java     # Metadata de variables y subrutinas
+│       ├── InfoSubrutina.java       # Información de marcos de pila
 │       ├── Generador.java           # Generador de código máquina TM
-│       ├── UtGen.java               # Utilidades de emisión de instrucciones TM
-│       ├── TestBackend.java         # Suite de pruebas unitarias del backend
-│       └── nodosAST/                # Nodos del Árbol de Sintaxis Abstracta (AST)
-├── ide/                             # IDE Web y Depurador Visual de la Tiny Machine
-│   ├── index.html                   # Interfaz de usuario integrada
-│   ├── server.js                    # Servidor local Node.js para compilar código .tny
-│   ├── js/
-│   │   ├── editor.js                # Lógica del editor de código y comunicación HTTP
-│   │   ├── tm-engine.js             # Motor simulador de la Tiny Machine en JavaScript
-│   │   └── tm-ui.js                 # Controlador visual de registros, memorias y consola
-│   └── styles/                      # Hojas de estilo modulares (layout, editor, componentes)
-├── ejemplos/                        # Archivos de prueba en código Tiny++ (.tny)
-├── compilar_gramatica.bat           # Script para regenerar Léxico.java y parser.java
-├── compilar_codigo.bat              # Script para compilar las clases Java
-├── ejecutar.bat                     # Script para ejecutar el compilador sobre un archivo .tny
-├── probar_backend.bat               # Script para validar la generación de código TM aislada
-└── iniciar_servidor_ide.bat         # Script para lanzar el IDE Web en el navegador
+│       ├── UtGen.java               # Utilidades de emisión de instrucciones
+│       ├── TestBackend.java         # Suite de pruebas unitarias
+│       └── nodosAST/                # Clases polimórficas del AST
+├── ide/                             # Entorno de desarrollo web
+│   ├── index.html                   # Interfaz visual del IDE y simulador
+│   ├── server.js                    # Servidor local Node.js
+│   ├── js/                          # editor.js, tm-engine.js, tm-ui.js
+│   └── styles/                      # Hojas de estilo modulares
+├── ejemplos/                        # Programas de prueba en Tiny++ (.tny)
+│   ├── test_completo_tiny_plus.tny  # Prueba integral de características
+│   ├── test_misiones_unificadas.tny # Prueba unificada de backend
+│   ├── test_tiny_plus_full.tny      # Prueba completa de sintaxis
+│   ├── test_scopes.tny              # Prueba de aislamiento de ámbitos
+│   ├── test_errores_semanticos.tny  # Casos negativos de validación
+│   ├── factorial_tiny_plus.tny      # Cálculo de factorial iterativo
+│   └── ejemplo2_tiny_plus.tny       # Condicionales y lectura
+├── compilar_codigo.bat              # Compila las clases Java en bin/
+├── compilar_gramatica.bat           # Regenera el analizador con JFlex y CUP
+├── ejecutar.bat                     # Compila y ejecuta un .tny por consola
+├── probar_backend.bat               # Ejecuta las pruebas unitarias del backend
+└── iniciar_servidor_ide.bat         # Inicia el IDE Web en el navegador
 ```
 
 ---
 
-## ⚙️ Requisitos
+## ⚙️ Requisitos del Sistema
 
-- **Java JDK 8+** (configurado en `PATH` o detectado automáticamente por los scripts y el servidor).
-- **Node.js 16+** (para iniciar el servidor local del IDE y depurador visual).
+- **Java JDK 8 o superior** (detectado automáticamente por los scripts y el servidor).
+- **Node.js 16 o superior** (para el entorno del IDE Web y servidor de compilación local).
 
 ---
 
-## 🚀 Compilación y Ejecución
+## 🚀 Guía de Uso y Ejecución
 
 ### 1. Iniciar el IDE Web y Depurador Visual
-Ejecute el siguiente script para iniciar el servidor local y abrir la interfaz en el navegador:
+Ejecute el script de inicio con un doble clic o desde la terminal:
 ```cmd
 iniciar_servidor_ide.bat
 ```
-El IDE estará disponible en `http://localhost:3000`, permitiendo escribir código Tiny++, compilarlo con un clic y depurarlo paso a paso en la Tiny Machine.
+El navegador se abrirá automáticamente en `http://localhost:3000`. Permite escribir o abrir código Tiny++, compilar con el botón **⚡ "Compilar y Cargar"** y depurar paso a paso en la Tiny Machine visualizando la memoria y los registros.
 
-### 2. Probar la Generación de Código del Backend (Misiones 1 a 4)
-Permite validar el funcionamiento de operadores relacionales, booleanos, arreglos unidimensionales, cadenas y subrutinas con marcos de pila:
+### 2. Ejecutar Pruebas Automatizadas del Backend
+Valida la generación de código TM para operadores, arreglos, cadenas y subrutinas:
 ```cmd
 probar_backend.bat
 ```
 
 ### 3. Compilar el Código Fuente Java
+Recompila todas las clases Java del proyecto en la carpeta `bin/`:
 ```cmd
 compilar_codigo.bat
 ```
 
-### 4. Ejecutar el Compilador por Consola sobre un archivo `.tny`
+### 4. Ejecutar el Compilador por Consola
+Para compilar un programa específico y visualizar el AST, la tabla de símbolos y el listado TM:
 ```cmd
 ejecutar.bat ejemplos\test_completo_tiny_plus.tny
 ```
 
-### 5. Regenerar Léxico y Sintáctico (JFlex + CUP)
+### 5. Regenerar Analizadores Léxico y Sintáctico
+Si se modifican las especificaciones `lexico.flex` o `sintactico.cup`:
 ```cmd
 compilar_gramatica.bat
 ```
@@ -127,8 +120,9 @@ compilar_gramatica.bat
 ---
 
 ## 👨‍💻 Créditos
-Desarrollado para la materia de **Compiladores e Intérpretes** — **Universidad Nacional Experimental del Táchira (UNET)**.
 
-- **Jesús Chacón** — Módulo 1: Frontend, Léxico, Sintaxis, Ámbitos jerárquicos y Verificador Semántico estricto.
-- **Carlos Ocáriz** — Módulo 2: Backend, Generador TM, Operadores, Arreglos, Cadenas y Marcos de Pila.
-- **Ana Paola Pineda** — Módulos 3 y 4: IDE Web, Servidor de Compilación y Depurador Visual de la Tiny Machine.
+Proyecto desarrollado para la asignatura **Compiladores e Intérpretes** — **Universidad Nacional Experimental del Táchira (UNET)**.
+
+- **Jesús Chacón** — *Módulo 1:* Frontend, Especificación Léxica, Gramática Sintáctica, Árbol de Ámbitos y Verificador Semántico Estricto.
+- **Carlos Ocáriz** — *Módulo 2:* Backend, Generador de Código TM, Operadores Relacionales/Lógicos, Arreglos Unidimensionales, Cadenas y Marcos de Activación (Stack Frames).
+- **Ana Paola Pineda** — *Módulos 3 y 4:* IDE Web, Servidor de Integración y Depurador Visual de la Tiny Machine.
