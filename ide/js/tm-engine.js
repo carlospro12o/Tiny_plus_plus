@@ -160,7 +160,14 @@ function stepTM() {
   if (c==='RR') { s=inst.a2; t=inst.a3; }
   else {
     s=inst.a3; m=inst.a2+reg[s];
-    if (c==='RM'&&(m<0||m>=DSIZE)) return DMEM;
+    if (c==='RM'&&(m<0||m>=DSIZE)) {
+      reg[PC]=pc;
+      ioLog.push({t:'err', msg:`[Error TM] Acceso fuera de rango a memoria de datos: ${m}`});
+      if (typeof IdeConsole !== 'undefined') {
+        IdeConsole.error(`[Error de Ejecución TM] Acceso inválido a memoria de datos en dirección ${m} (instrucción ${pc}).`);
+      }
+      return DMEM;
+    }
   }
 
   prevReg=[...reg];
@@ -195,7 +202,14 @@ function stepTM() {
     case 4:  reg[r]=reg[s]-reg[t]; break;
     case 5:  reg[r]=reg[s]*reg[t]; break;
     case 6:
-      if(reg[t]===0) return ZDIV;
+      if(reg[t]===0) {
+        reg[PC]=pc;
+        ioLog.push({t:'err', msg:`[Error TM] Division por cero en instruccion ${pc}`});
+        if (typeof IdeConsole !== 'undefined') {
+          IdeConsole.error(`[Error de Ejecución TM] Division por cero detectada en instruccion ${pc}.`);
+        }
+        return ZDIV;
+      }
       reg[r]=Math.trunc(reg[s]/reg[t]); break;
 
     case 8:   reg[r]=dMem[m]; break; // LD
