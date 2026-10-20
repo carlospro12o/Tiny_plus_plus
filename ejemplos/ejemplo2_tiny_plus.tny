@@ -1,0 +1,8 @@
+{ Sample program in Tiny++ with explicit variable declaration }
+int x;
+read x;
+if 100 < x then
+  write 0
+else
+  write 200
+end

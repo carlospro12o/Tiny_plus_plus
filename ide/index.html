@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tiny++ IDE — TM Simulator</title>
+  <meta name="description" content="IDE y simulador visual de la Tiny Machine para el compilador Tiny++">
+
+  <!-- ═══════════════════════════════════════════════════════════
+       HOJAS DE ESTILO
+       Orden importante: variables primero (tokens), luego layout,
+       luego componentes, y scrollbars al final.
+       ═══════════════════════════════════════════════════════════ -->
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/variables.css">
+  <link rel="stylesheet" href="styles/layout.css">
+  <link rel="stylesheet" href="styles/components.css">
+  <link rel="stylesheet" href="styles/editor.css">
+  <link rel="stylesheet" href="styles/scrollbars.css">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     HEADER — Barra superior con logo, nombre de archivo y botones
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="header">
+  <div id="logo">▸ Tiny<span>++</span></div>
+  <span id="file-name">no program loaded</span>
+
+  <!-- Botón Compilar y Cargar (Sprint 3: SCRUM-16) -->
+  <button class="btn btn-compile" id="btn-compile-load" title="Compilar código Tiny++ y cargar en la Tiny Machine">
+    <span class="btn-compile-icon">⚡</span> Compilar y Cargar
+  </button>
+
+  <!-- Indicador visual de conexión con el Servidor Node.js -->
+  <div id="header-server-status" title="Estado de conexión con el servidor Node.js (iniciar_servidor_ide.bat)" style="display:flex;align-items:center;gap:6px;font-size:11px;margin-left:auto;margin-right:12px;padding:3px 8px;border-radius:4px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+    <span class="status-dot checking" id="header-status-dot" style="width:7px;height:7px;border-radius:50%;display:inline-block;background:#f59e0b;"></span>
+    <span id="header-status-text" style="color:var(--text2);font-weight:500;">Verificando servidor...</span>
+  </div>
+
+  <button class="btn" id="btn-paste-toggle">paste ▾</button>
+  <label class="btn go" style="cursor:pointer" title="Cargar archivo .tm desde disco">
+    load .tm
+    <input type="file" id="file-in" accept=".tm,.txt" style="display:none">
+  </label>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     PASTE SECTION — Panel colapsable para pegar código TM
+     Se muestra/oculta al hacer click en "paste ▾"
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="paste-wrap">
+  <div style="font-size:9px;color:var(--text3);margin-bottom:5px;letter-spacing:.1em;">
+    PASTE TM PROGRAM &nbsp;·&nbsp; format: &nbsp; loc: OPCODE r,d(s) * comment
+  </div>
+  <textarea id="paste-ta" placeholder="0: IN 0,0,0   * read input&#10;1: HALT 0,0,0  * done"></textarea>
+  <div id="paste-footer">
+    <button class="btn go" id="btn-load-paste">load from text</button>
+    <span id="paste-err"></span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     MAIN — Layout de 3 columnas (CSS Grid)
+     
+     Columna 1 (220px): Controles, Registros, I/O Log, Watchpoints
+     Columna 2 (flex):   Data Memory (dMem) con tabs Low/High
+     Columna 3 (380px): Instruction Memory (iMem)
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="main">
+
+  <!-- ═════════════════════════════════════════════════════════════
+       ESPACIO DE TRABAJO IZQUIERDO: Editor Tiny++ y Consola Visual
+       ═════════════════════════════════════════════════════════════ -->
+  <div id="left-workspace">
+    
+    <!-- ── Panel Superior: Editor de Código con Numeración ── -->
+    <div id="editor-panel">
+      <div class="editor-tabs">
+        <div class="editor-tab-group">
+          <div class="editor-tab">
+            <span class="file-icon">📄</span>
+            <span id="editor-active-file">factorial.tny</span>
+          </div>
+        </div>
+        <div class="editor-actions">
+          <button class="btn" id="btn-new-code" title="Nuevo archivo de código" onclick="Editor.setSource('','nuevo.tny')">+ Nuevo</button>
+          <label class="btn go" style="cursor:pointer;padding:2px 8px;font-size:10px;">
+            Abrir .tny
+            <input type="file" id="tny-file-in" accept=".tny,.txt" style="display:none" onchange="
+              if(this.files && this.files[0]) {
+                const f = this.files[0];
+                const r = new FileReader();
+                r.onload = e => {
+                  Editor.setSource(e.target.result, f.name);
+                  IdeConsole.info('Archivo Tiny++ cargado en editor: ' + f.name);
+                };
+                r.readAsText(f);
+              }
+            ">
+          </label>
+        </div>
+      </div>
+
+      <div class="editor-body">
+        <!-- Numeración de líneas sincronizada con scroll -->
+        <div class="editor-gutter" id="editor-gutter"></div>
+        <!-- Área de escritura de código fuente -->
+        <textarea class="editor-textarea" id="code-editor" spellcheck="false" placeholder="Escribe aquí tu código Tiny++..."></textarea>
+      </div>
+    </div>
+
+    <!-- ── Panel Inferior: Consola Visual Multicanal ── -->
+    <div id="console-panel">
+      <div class="console-header">
+        <div class="console-tabs">
+          <div class="console-tab active" data-tab="all" onclick="IdeConsole.setTab('all')">Consola</div>
+          <div class="console-tab" data-tab="output" onclick="IdeConsole.setTab('output')">Salida</div>
+          <div class="console-tab" data-tab="errors" onclick="IdeConsole.setTab('errors')">
+            Problemas <span class="console-badge badge-error" id="console-error-count" style="display:none">0</span>
+          </div>
+        </div>
+        <div class="console-actions">
+          <button class="btn" style="font-size:9px;padding:1px 6px;" onclick="IdeConsole.clear()" title="Limpiar mensajes de consola">Limpiar</button>
+        </div>
+      </div>
+      <!-- Listado de mensajes / logs / errores con colores -->
+      <div class="console-body" id="console-body"></div>
+    </div>
+
+  </div>
+
+  <!-- ═════════════════════════════════════════════════════════════
+       ESPACIO DE TRABAJO DERECHO: Simulador de la Tiny Machine (TM)
+       ═════════════════════════════════════════════════════════════ -->
+  <div id="tm-workspace">
+
+    <!-- ══ COLUMNA IZQUIERDA TM: Controles, Registros, I/O ═══════ -->
+    <div class="col">
+
+    <!-- Controles de ejecución -->
+    <div id="ctrl-sec">
+      <div id="step-status">
+        <span id="step-count">Step: 0</span>
+        <span id="step-result">READY</span>
+      </div>
+      <div class="ctrl-row">
+        <button class="btn go" id="btn-step1">▶ Step</button>
+        <input type="number" class="num-in" id="n-val" value="10" min="1" title="N for step×N">
+        <button class="btn go" id="btn-stepn">▶▶ ×N</button>
+      </div>
+      <div class="ctrl-row">
+        <button class="btn warn" id="btn-run">⚡ Run</button>
+        <button class="btn stop" id="btn-stop" style="display:none">■ Stop</button>
+        <button class="btn" id="btn-reset">↺ Reset</button>
+      </div>
+    </div>
+
+    <!-- Registros (r0-r6 + PC) -->
+    <div id="reg-sec">
+      <div class="sec-title">Registers</div>
+      <div class="reg-grid" id="reg-grid"></div>
+    </div>
+
+    <!-- I/O Log (historial de entradas/salidas) -->
+    <div id="io-sec">
+      <div class="sec-title">I/O Log</div>
+      <div id="io-log"></div>
+      <div id="in-row">
+        <span id="in-prompt">IN ▸</span>
+        <input type="number" id="in-val" placeholder="integer…">
+        <button class="btn go" id="btn-in-ok">↵</button>
+      </div>
+    </div>
+
+
+  </div>
+
+  <!-- ══ COLUMNA CENTRAL: DATA MEMORY ═══════════════════════════ -->
+  <div class="col" id="dmem-col">
+    <!-- Tabs: ver memoria desde el inicio (Low) o el final (High) -->
+    <div class="tab-bar">
+      <div class="tab active" data-tab="low"  onclick="switchTab('low')">Low ↑ (0→)</div>
+      <div class="tab"        data-tab="high" onclick="switchTab('high')">High ↓ (←1023)</div>
+    </div>
+    <!-- Configuración del rango visible -->
+    <div id="dmem-cfg">
+      <span class="cfg-lbl" id="cfg-lbl">Start addr:</span>
+      <input type="number" class="rng-in" id="rng-start" value="0" min="0" max="1023">
+      <span class="cfg-lbl">Count:</span>
+      <input type="number" class="rng-in" id="rng-count" value="64" min="1" max="1024">
+      <button class="btn" onclick="renderDmem()" style="font-size:9px;padding:2px 7px;">apply</button>
+      <span id="dmem-info"></span>
+    </div>
+    <!-- Tabla de datos -->
+    <div id="dmem-scroll">
+      <table class="mtbl">
+        <thead><tr><th>Addr</th><th style="text-align:right">Value</th><th>Note</th></tr></thead>
+        <tbody id="dmem-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ COLUMNA DERECHA: INSTRUCTION MEMORY ════════════════════ -->
+  <div class="col">
+    <div class="sec-title">Instruction Memory
+      <span style="float:right;font-weight:400;letter-spacing:.05em;color:var(--text3)">click row = toggle breakpoint</span>
+    </div>
+    <div id="imem-scroll">
+      <table class="itbl">
+        <thead><tr><th></th><th>Loc</th><th>Op</th><th>Args</th><th>Comment</th></tr></thead>
+        <tbody id="imem-body">
+          <tr><td colspan="5" class="empty-msg">Load a .tm file or paste code.<br>Click any row to toggle a ● breakpoint.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  </div> <!-- Fin #tm-workspace -->
+
+</div> <!-- Fin #main -->
+
+<!-- ═══════════════════════════════════════════════════════════════
+     STATUS BAR — Barra inferior estilo VS Code
+     Muestra: créditos, estado actual, PC, watchpoint
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="statusbar">
+  <span>Tiny++ IDE · TM Simulator</span>
+  <span id="sb-status">load a program to begin</span>
+  <span id="sb-pc">PC: —</span>
+  <span id="sb-watch"></span>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     MODAL DE INTEGRACIÓN — Puente Compilador ↔ Tiny Machine
+     (Sprint 3: SCRUM-16)
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="compile-modal" class="modal-overlay" style="display:none">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title">
+        <span class="modal-icon">⚡</span> Puente de Integración Compilador ↔ TM
+      </div>
+      <button class="modal-close" id="btn-modal-close" title="Cerrar">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Barra de estado del servidor en segundo plano -->
+      <div class="modal-status-bar" id="modal-server-status">
+        <span class="status-dot offline" id="server-status-dot"></span>
+        <span id="server-status-text">Verificando conexión con servidor de compilación...</span>
+      </div>
+
+      <!-- Opción A: Cargar archivo .tm compilado -->
+      <div class="modal-section">
+        <div class="modal-section-title">Opción A: Cargar archivo .tm compilado</div>
+        <p class="modal-desc">Selecciona el archivo <code>.tm</code> generado por el compilador Java para cargarlo directamente en la memoria:</p>
+        <div class="modal-actions-row">
+          <label class="btn go" style="cursor:pointer">
+            📂 Seleccionar archivo .tm
+            <input type="file" id="modal-tm-file-in" accept=".tm,.txt" style="display:none">
+          </label>
+          <span id="modal-selected-file" class="file-tag">Ningún archivo cargado</span>
+        </div>
+      </div>
+
+      <!-- Opción B: Pegar salida del compilador Java o instrucciones TM -->
+      <div class="modal-section">
+        <div class="modal-section-title">Opción B: Pegar salida de consola o código .tm</div>
+        <p class="modal-desc">Pega aquí el código <code>.tm</code> o la salida completa de <code>ejecutar.bat</code> (el sistema extraerá automáticamente las instrucciones):</p>
+        <textarea id="modal-tm-paste" class="modal-textarea" placeholder="Ej:&#10;0: LD 6,0(0) * load maxaddress&#10;1: ST 0,0(0) * clear location 0&#10;..."></textarea>
+        <div class="modal-actions-row" style="margin-top: 8px;">
+          <button class="btn go" id="btn-modal-inject-paste">📥 Inyectar en Memoria TM</button>
+          <button class="btn" id="btn-modal-clear-paste">Limpiar</button>
+        </div>
+      </div>
+
+      <!-- Opción C: Comandos rápidos para compilar por terminal -->
+      <div class="modal-section">
+        <div class="modal-section-title">💡 Comandos de Compilación (Terminal)</div>
+        <div class="modal-cmd-box">
+          <code id="modal-cmd-text">ejecutar.bat ejemplos\factorial.tny</code>
+          <button class="btn" id="btn-copy-cmd" title="Copiar comando">📋 Copiar</button>
+        </div>
+        <div style="margin-top: 8px; display: flex; gap: 8px;">
+          <button class="btn" id="btn-download-tny" title="Descargar código Tiny++ actual">💾 Guardar archivo .tny</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <span class="modal-footer-hint">Las instrucciones se validan y cargan en iMem reiniciando PC en 0.</span>
+      <button class="btn" id="btn-modal-cancel">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     JAVASCRIPT
+     
+     Orden de carga:
+     1. editor.js (Editor de texto Tiny++ y Consola Visual)
+     2. tm-engine.js (Motor de simulación de la Tiny Machine)
+     3. tm-ui.js (Interfaz de controles, tablas y listeners del simulador)
+     ═══════════════════════════════════════════════════════════════ -->
+<script src="js/editor.js"></script>
+<script src="js/tm-engine.js"></script>
+<script src="js/tm-ui.js"></script>
+
+</body>
+</html>

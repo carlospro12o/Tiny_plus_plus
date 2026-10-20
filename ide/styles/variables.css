@@ -1,0 +1,68 @@
+/* ═══════════════════════════════════════════════════════════════
+   VARIABLES.CSS — Variables de Estilo y Paleta de Colores
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Fondos (de más oscuro a más claro) ──────────────────
+     Usamos una escala de negros estilo VS Code.
+     bg0 = fondo principal, bg5 = el más claro (para hovers) */
+  --bg0: #1e1e1e;      /* Fondo principal del editor (VS Code exact) */
+  --bg1: #222226;      /* Paneles secundarios */
+  --bg2: #252526;      /* Sidebar / header (VS Code exact) */
+  --bg3: #2d2d30;      /* Elementos elevados (tabs, secciones) */
+  --bg4: #333337;      /* Hover suave */
+  --bg5: #3e3e42;      /* Hover fuerte / bordes activos */
+
+  /* ── Bordes ─────────────────────────────────────────────── */
+  --border:  #2d2d30;  /* Borde sutil entre paneles */
+  --border2: #3e3e42;  /* Borde más visible (inputs, botones) */
+
+  /* ── Textos ─────────────────────────────────────────────── */
+  --text:    #d4d4d4;  /* Texto principal (VS Code exact) */
+  --text2:   #9e9e9e;  /* Texto secundario */
+  --text3:   #5a5a5a;  /* Texto apagado (labels, hints) */
+
+  /* ── Rosa Oscuro — Acento Principal ─────────────────────
+     Este es el color "marca" de nuestro IDE.
+     Lo usamos para: logo, tabs activos, status bar, focus */
+  --pink:     #d4467b;
+  --pink2:    #e8749e;  /* Rosa más claro (hover) */
+  --pink-dim: #8a2050;  /* Rosa apagado (bordes sutiles) */
+  --pink-bg:  rgba(212, 70, 123, 0.10); /* Rosa transparente para fondos */
+
+  /* ── Colores Semánticos (significado funcional) ─────────
+     Estos colores comunican ESTADO, no son decorativos:
+     - Verde = éxito, ejecutar, PC activo
+     - Ámbar = cambio, advertencia
+     - Rojo = error, parar, breakpoint
+     - Cian = información, datos */
+  --green:     #4ec98a;
+  --green2:    #70e0a0;
+  --green-dim: #1a6038;
+  --green-bg:  rgba(78, 201, 138, 0.10);
+
+  --amber:     #e0a020;
+  --amber2:    #f0c050;
+  --amber-dim: #7a5808;
+  --amber-bg:  rgba(224, 160, 32, 0.13);
+
+  --red:       #d04848;
+  --red2:      #f06060;
+  --red-dim:   #602020;
+  --red-bg:    rgba(208, 72, 72, 0.12);
+
+  --cyan:      #38b8c8;
+  --cyan-dim:  #185868;
+
+  --blue:      #3888d0;
+
+  /* ── PC & Breakpoint (resaltado en tablas) ──────────────── */
+  --pc-bg:     rgba(78, 201, 138, 0.10);
+  --pc-border: rgba(78, 201, 138, 0.55);
+  --bp-bg:     rgba(208, 72, 72, 0.12);
+  --bp-border: rgba(208, 72, 72, 0.55);
+  --chg-bg:    rgba(224, 160, 32, 0.13);
+
+  /* ── Tipografía ─────────────────────────────────────────── */
+  --font: 'IBM Plex Mono', 'Cascadia Code', 'Fira Code', monospace;
+}

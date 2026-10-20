@@ -1,0 +1,19 @@
+# IDE files
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Compiled Java output
+*.class
+out/
+bin/
+build/
+*.log
+
+# OS & Temp files
+Thumbs.db
+.DS_Store
+*.tmp
+*.bak
+ejemplos/_ide_*
